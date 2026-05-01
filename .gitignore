@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# env / secrets
+.env
+.env.*
+*.key
+*.pem
+
+# system
+.DS_Store
+Thumbs.db
+
+# temp
+tmp/
+temp/
+.cache/
+*.log
+
+# large or noisy generated assets
+artifacts/raw/
+artifacts/temp/
+artifacts/cache/
+
+# build outputs
+dist/
+build/
+out/
