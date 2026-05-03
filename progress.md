@@ -1,6 +1,7 @@
 # 推进记录
 
 ## 2026-05-03
+- 根据 Dewens 反馈“当前 UI / 交互与预期相差甚远”，重新对照 5 张已采纳 Sotto 参考图进行差距评审，新增 `docs/sotto-ui-interaction-gap-review-v2.md`，明确当前实现只是技术底座，V2 需要围绕首页、准备中状态、编辑页、切分面板、提词浮窗和视觉组件底座做体验重构。
 - 先将 2026-05-02 已沉淀的需求文档、视觉参考图、资源索引和项目记录提交为规格基线：`docs: establish Sotto MVP 0.1 baseline`。
 - 创建实现分支 `codex/sotto-mvp-0.1`，从规格基线开始实现。
 - 新增 `docs/superpowers/plans/2026-05-03-sotto-mvp-0.1-macos-app.md`，记录 Sotto MVP 0.1 Mac 原生可运行版的实施计划。
