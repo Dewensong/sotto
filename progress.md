@@ -1,5 +1,19 @@
 # 推进记录
 
+## 2026-05-03
+- 先将 2026-05-02 已沉淀的需求文档、视觉参考图、资源索引和项目记录提交为规格基线：`docs: establish Sotto MVP 0.1 baseline`。
+- 创建实现分支 `codex/sotto-mvp-0.1`，从规格基线开始实现。
+- 新增 `docs/superpowers/plans/2026-05-03-sotto-mvp-0.1-macos-app.md`，记录 Sotto MVP 0.1 Mac 原生可运行版的实施计划。
+- 新增 SwiftPM 工程：`Package.swift`、`Sources/SottoCore/`、`Sources/Sotto/`、`Tests/SottoTests/`。
+- 实现 SottoCore 核心模型：`PromptDocument`、`SentenceSegment`、`PhraseSegment`、`TimingProfile`、`PromptSession`、`TeleprompterSettings`。
+- 实现确定性切分：支持中文 / 英文分句、换行段落、逗号 / 顿号 / 转折词短语切分、长句 2-4 段拆分和短句保留。
+- 实现手动切分点：在选中句子的字间位置插入 / 取消短语切分点，非法位置忽略。
+- 实现本地最近稿件保存：使用应用支持目录下的 JSON 文件保存最近 12 篇稿件。
+- 实现 SwiftUI 主窗口：Sotto 首页、最近稿件、稿件编辑页、切分面板、速度分段控制、聚光流预览。
+- 实现 AppKit 提词浮窗：置顶、半透明、无边框、可拖动的 `Sotto Prompt` 浮窗，显示上 1 句、当前 1 句、下 3 句，并支持播放 / 暂停、上一句 / 下一句、速度切换和关闭。
+- 新增 `script/build_and_run.sh` 和 `.codex/environments/environment.toml`，支持 Codex Run 按钮与 `--verify` 构建启动验证。
+- 验证结果：`swift test` 通过 10 个测试；`./script/build_and_run.sh --verify` 构建并启动成功；手动验收确认首页、最近稿件恢复、编辑页、切分面板、聚光流预览、提词浮窗和播放状态切换可用。
+
 ## 2026-05-02
 - 创建项目骨架
 - 初始化 AI 协作文件与目录结构

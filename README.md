@@ -4,9 +4,9 @@
 面向 vibe coding 和 AI 产品演示的 Mac 原生 AI 智能提词器：把零散材料整理成自然口播稿，并在演示时用精致、低打扰的提词层辅助表达。
 
 ## 当前状态
-- 阶段：MVP 0.1 需求规格已收敛
-- 最近更新时间：2026-05-02
-- 当前进展：已将第一版范围收敛为「Mac 本机聚光流提词器」，完成 MVP 0.1 设计规格，并沉淀 Sotto UI 基准与交互动效原则。
+- 阶段：MVP 0.1 Mac 原生可运行版已实现
+- 最近更新时间：2026-05-03
+- 当前进展：已基于 SwiftPM + SwiftUI 搭建 Sotto Mac App，实现稿件粘贴、确定性切分、手动切分点、聚光流预览、本地最近稿件保存和 AppKit 提词浮窗。
 - 当前阻塞：暂无
 
 ## 下一步
@@ -16,8 +16,10 @@
 - [x] 基于真实需求讨论收敛 MVP 0.1 范围
 - [x] 产出聚光流提词器 MVP 0.1 设计规格
 - [ ] 审阅并确认 `docs/superpowers/specs/2026-05-02-spotlight-flow-teleprompter-mvp-design.md`
-- [ ] 基于 MVP 0.1 规格设计第一版信息架构和低保真原型
-- [ ] 选择一段已有口播稿作为聚光流提词测试样本
+- [x] 基于 MVP 0.1 规格实现第一版 Mac 原生可运行闭环
+- [x] 选择一段已有口播稿作为聚光流提词测试样本
+- [ ] 真实录屏场景试用 Sotto 提词浮窗，记录可读性、遮挡和节奏问题
+- [ ] 根据真实试用结果调整提词窗口字号、位置、透明度和扫读节奏
 
 ## 项目索引
 - `AGENTS.md`：Codex / 通用 AI 协作规则
@@ -33,6 +35,7 @@
 - `archive/`：旧版本、废弃方案、历史备份
 
 ## 当前关键文档
+- `docs/superpowers/plans/2026-05-03-sotto-mvp-0.1-macos-app.md`：MVP 0.1 Mac 原生可运行版实施计划
 - `docs/product-definition-v1.md`：产品定义 V1，包含定位、核心需求、MVP、UI 方向和验收标准
 - `docs/superpowers/specs/2026-05-02-spotlight-flow-teleprompter-mvp-design.md`：MVP 0.1 设计规格，聚焦 Mac 本机聚光流提词器
 - `docs/sotto-ui-design-baseline-v1.md`：Sotto UI 设计基准 V1，沉淀 5 张参考图中的统一视觉语言和实现原则
@@ -46,6 +49,11 @@
 - `work/reference-analysis.md`：Claudio / AI 电台参考视频分析
 - `artifacts/raw/reference-videos/`：原始参考视频
 - `artifacts/reference-screenshots/`：参考视频关键截图
+
+## 本地运行
+- `swift test`：运行 SottoCore 行为测试
+- `./script/build_and_run.sh --verify`：构建并启动 `dist/Sotto.app`，验证 Sotto 进程存在
+- Codex App 的 Run 按钮已通过 `.codex/environments/environment.toml` 指向 `./script/build_and_run.sh`
 
 ## AI 协作提示
 开始前请先读取 `AGENTS.md`，再结合 `README.md`、`context.md`、`progress.md`、`decisions.md` 进入项目状态。

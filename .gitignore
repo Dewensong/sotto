@@ -26,6 +26,7 @@ artifacts/temp/
 artifacts/cache/
 
 # build outputs
+.build/
 dist/
 build/
 out/
