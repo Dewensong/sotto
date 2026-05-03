@@ -15,7 +15,10 @@ let package = Package(
         .target(name: "SottoCore"),
         .executableTarget(
             name: "Sotto",
-            dependencies: ["SottoCore"]
+            dependencies: ["SottoCore"],
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "SottoTests",

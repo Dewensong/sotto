@@ -5,9 +5,12 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            SottoBackground()
+            SottoStageBackground()
 
-            if model.currentDocument == nil {
+            if model.phase == .preparing {
+                PreparingView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.985)))
+            } else if model.currentDocument == nil {
                 HomeView()
                     .transition(.opacity.combined(with: .scale(scale: 0.985)))
             } else {

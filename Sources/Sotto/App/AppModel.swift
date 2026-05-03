@@ -5,6 +5,13 @@ import SottoCore
 
 @MainActor
 final class AppModel: ObservableObject {
+    enum Phase {
+        case home
+        case preparing
+        case editor
+    }
+
+    @Published var phase: Phase = .home
     @Published var inputText: String = ""
     @Published var currentDocument: PromptDocument?
     @Published var selectedSentenceID: SentenceSegment.ID?
@@ -37,14 +44,19 @@ final class AppModel: ObservableObject {
         guard !trimmed.isEmpty else { return }
         var document = segmentationService.segment(trimmed, title: "新的提词稿", timing: timing)
         document.title = generatedTitle(from: trimmed)
-        open(document)
-        saveCurrentDocument()
+        phase = .preparing
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(780))
+            open(document)
+            saveCurrentDocument()
+        }
     }
 
     func open(_ document: PromptDocument) {
         currentDocument = document
         selectedSentenceID = document.sentences.first?.id
         session = PromptSession(document: document, timing: timing)
+        phase = .editor
     }
 
     func returnHome() {
@@ -52,6 +64,7 @@ final class AppModel: ObservableObject {
         currentDocument = nil
         session = nil
         selectedSentenceID = nil
+        phase = .home
     }
 
     func loadRecentDocuments() {

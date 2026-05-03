@@ -3,74 +3,157 @@ import SottoCore
 
 struct SegmentPanelView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var pause = "短停顿"
+    @State private var emphasis = "普通"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("节奏卡")
-                .font(.headline)
-                .foregroundStyle(Color.sottoPrimary)
+        SottoGlassPanel(role: .workbench) {
+            VStack(alignment: .leading, spacing: 12) {
+                header
 
-            if let sentence = model.selectedSentence {
-                Text(sentence.text)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.sottoPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("短语切分")
-                        .font(.caption)
+                if let sentence = model.selectedSentence {
+                    selectedSentence(sentence)
+                    phraseSplitter(sentence)
+                    pauseControl
+                    emphasisControl
+                    duration(sentence)
+                } else {
+                    Text("选择一句稿件后，可以在这里微调短语边界。")
                         .foregroundStyle(Color.sottoMuted)
-
-                    FlowLayout(spacing: 8) {
-                        ForEach(sentence.phrases) { phrase in
-                            Text(phrase.text)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color.sottoPrimary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(Color.sottoGlow.opacity(0.13))
-                                .clipShape(Capsule())
-                        }
-                    }
                 }
 
-                Divider().overlay(.white.opacity(0.12))
-
-                Text("点击字间位置插入或取消切分点")
-                    .font(.caption)
-                    .foregroundStyle(Color.sottoMuted)
-
-                FlowLayout(spacing: 5) {
-                    let characters = Array(sentence.text)
-                    ForEach(characters.indices, id: \.self) { index in
-                        HStack(spacing: 4) {
-                            Text(String(characters[index]))
-                                .foregroundStyle(Color.sottoSecondary)
-                            if index < characters.count - 1 {
-                                Button {
-                                    model.toggleSplit(in: sentence, at: index + 2)
-                                } label: {
-                                    Circle()
-                                        .fill(sentence.manualSplitOffsets.contains(index + 1) ? Color.sottoGlow : Color.white.opacity(0.20))
-                                        .frame(width: 7, height: 7)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
-
-                Spacer()
-
-                Text("预计当前句 \(estimatedDuration(sentence), specifier: "%.1f") 秒")
-                    .font(.caption)
-                    .foregroundStyle(Color.sottoMuted)
-            } else {
-                Text("选择一句稿件后，可以在这里微调短语边界。")
-                    .foregroundStyle(Color.sottoMuted)
+                Spacer(minLength: 0)
             }
         }
-        .sottoPanel()
+    }
+
+    private var header: some View {
+        HStack {
+            Image(systemName: "waveform")
+                .font(.system(size: 24, weight: .light))
+                .foregroundStyle(Color.sottoPrimary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("短语切分 / 节奏调整")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.sottoPrimary)
+                Text("当前编辑：第 \(String(format: "%02d", (model.selectedSentenceIndex ?? 0) + 1)) 句")
+                    .font(.caption)
+                    .foregroundStyle(Color.sottoMuted)
+            }
+            Spacer()
+            PixelText(text: "SOTTO", size: 14, color: .sottoPrimary, dot: 1.2, spacing: 3.4)
+                .frame(width: 62, height: 20)
+        }
+    }
+
+    private func selectedSentence(_ sentence: SentenceSegment) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("当前选中句子")
+                .font(.caption)
+                .foregroundStyle(Color.sottoMuted)
+            PixelText(text: sentence.text, size: 18, color: .sottoPrimary, dot: 1.25, spacing: 4, tracking: 1.4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 42, alignment: .leading)
+        }
+    }
+
+    private func phraseSplitter(_ sentence: SentenceSegment) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("短语切分")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.sottoPrimary)
+                Text("点击切分点")
+                    .font(.caption)
+                    .foregroundStyle(Color.sottoMuted)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Array(sentence.phrases.enumerated()), id: \.element.id) { index, phrase in
+                        Text(phrase.text)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.sottoPrimary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 10)
+                            .frame(minHeight: 42)
+                            .background(Color.white.opacity(0.045))
+                            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+
+                        if index < sentence.phrases.count - 1 {
+                            splitNode(sentence: sentence, phraseIndex: index)
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .background(Color.black.opacity(0.20))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.sottoPrimary.opacity(0.12), lineWidth: 1)
+            )
+        }
+    }
+
+    private func splitNode(sentence: SentenceSegment, phraseIndex: Int) -> some View {
+        Button {
+            let offset = sentence.phrases.prefix(phraseIndex + 1).reduce(0) { $0 + $1.text.count } + 1
+            model.toggleSplit(in: sentence, at: offset)
+        } label: {
+            VStack(spacing: 4) {
+                Rectangle()
+                    .fill(Color.sottoPrimary)
+                    .frame(width: 2, height: 32)
+                    .shadow(color: Color.sottoGlow.opacity(0.8), radius: 10)
+                Circle()
+                    .fill(Color.sottoPrimary)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: Color.sottoGlow.opacity(0.8), radius: 10)
+            }
+            .frame(width: 20)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var pauseControl: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("停顿设置", systemImage: "timer")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.sottoPrimary)
+            Picker("停顿设置", selection: $pause) {
+                Text("无").tag("无")
+                Text("短停顿").tag("短停顿")
+                Text("长停顿").tag("长停顿")
+            }
+            .pickerStyle(.segmented)
+            .tint(Color.sottoPrimary)
+        }
+    }
+
+    private var emphasisControl: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("强调设置", systemImage: "target")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.sottoPrimary)
+            Picker("强调设置", selection: $emphasis) {
+                Text("普通").tag("普通")
+                Text("强调").tag("强调")
+            }
+            .pickerStyle(.segmented)
+            .tint(Color.sottoPrimary)
+        }
+    }
+
+    private func duration(_ sentence: SentenceSegment) -> some View {
+        HStack(spacing: 18) {
+            Label("当前句预计耗时", systemImage: "clock")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.sottoSecondary)
+            Text("\(estimatedDuration(sentence), specifier: "%.1f") 秒")
+                .font(.system(size: 18, weight: .light, design: .monospaced))
+                .foregroundStyle(Color.sottoPrimary)
+        }
     }
 
     private func estimatedDuration(_ sentence: SentenceSegment) -> Double {

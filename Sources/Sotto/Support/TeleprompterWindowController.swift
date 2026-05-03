@@ -16,8 +16,9 @@ final class TeleprompterWindowController {
             .environmentObject(model)
 
         let hostingView = NSHostingView(rootView: rootView)
+        let windowSize = CGSize(width: model.settings.width, height: 430)
         let window = PromptPanel(
-            contentRect: CGRect(x: 0, y: 0, width: model.settings.width, height: 420),
+            contentRect: CGRect(origin: .zero, size: windowSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -31,7 +32,7 @@ final class TeleprompterWindowController {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isMovableByWindowBackground = true
         window.standardWindowButton(.closeButton)?.isHidden = true
-        position(window, width: model.settings.width)
+        position(window, size: windowSize)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         self.window = window
@@ -42,10 +43,9 @@ final class TeleprompterWindowController {
         window = nil
     }
 
-    private func position(_ window: NSWindow, width: Double) {
+    private func position(_ window: NSWindow, size: CGSize) {
         guard let screen = NSScreen.main else { return }
         let visible = screen.visibleFrame
-        let size = CGSize(width: width, height: 420)
         let origin = CGPoint(
             x: visible.midX - size.width / 2,
             y: visible.maxY - size.height - 80

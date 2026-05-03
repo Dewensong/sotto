@@ -5,50 +5,31 @@ struct SpotlightPreviewView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("聚光流预览")
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("提词预览", systemImage: "display")
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.sottoPrimary)
-                PromptLinesView(compact: true)
+                SottoStatusBadge(title: "实时预览中", color: .sottoGreen)
+                    .scaleEffect(0.72, anchor: .leading)
+                Spacer()
+                Button("全屏预览 ↗") {
+                    model.openTeleprompter()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.sottoSecondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Color.white.opacity(0.045))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             }
 
-            Spacer()
-
-            controls
+            PromptCardLayout(fullWindow: false)
         }
         .sottoPanel()
         .onReceive(Timer.publish(every: 1.1, on: .main, in: .common).autoconnect()) { _ in
             model.advancePhrase()
-        }
-    }
-
-    private var controls: some View {
-        VStack(spacing: 10) {
-            Button {
-                model.togglePlayback()
-            } label: {
-                Image(systemName: model.session?.isPlaying == true ? "pause.fill" : "play.fill")
-                    .frame(width: 38, height: 38)
-            }
-            .buttonStyle(.plain)
-            .background(Color.sottoGlow.opacity(0.18))
-            .clipShape(Circle())
-
-            HStack {
-                Button {
-                    model.previousSentence()
-                } label: {
-                    Image(systemName: "backward.end.fill")
-                }
-                Button {
-                    model.nextSentence()
-                } label: {
-                    Image(systemName: "forward.end.fill")
-                }
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.sottoSecondary)
         }
     }
 }

@@ -9,8 +9,8 @@ public struct TeleprompterSettings: Codable, Equatable, Sendable {
 
     public init(
         fontSize: Double = 34,
-        width: Double = 820,
-        opacity: Double = 0.86,
+        width: Double = 760,
+        opacity: Double = 1,
         brightness: Double = 1,
         position: TeleprompterPosition = .upperCenter
     ) {

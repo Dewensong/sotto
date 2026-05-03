@@ -3,108 +3,281 @@ import SottoCore
 
 struct HomeView: View {
     @EnvironmentObject private var model: AppModel
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
-        HStack(spacing: 28) {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Sotto")
-                        .font(.system(size: 72, weight: .semibold, design: .serif))
-                        .foregroundStyle(Color.sottoPrimary)
+        VStack(spacing: 12) {
+            topBar
+            heroCopy
+            materialStage
+            recentDocuments
+            Text("专注表达，聚光成句。")
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .tracking(3)
+                .foregroundStyle(Color.sottoSecondary)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 12)
+    }
+
+    private var topBar: some View {
+        HStack(alignment: .top) {
+            HStack(spacing: 10) {
+                PixelTeleprompterIcon()
+                    .frame(width: 46, height: 40)
+                VStack(alignment: .leading, spacing: 3) {
+                    PixelText(text: "Sotto", size: 28, color: .sottoPrimary, dot: 1.7, spacing: 4.6)
+                        .frame(width: 116, height: 34, alignment: .leading)
                     Text("a quiet backstage for speaking well")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 10, weight: .regular))
                         .foregroundStyle(Color.sottoSecondary)
-                }
-
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("今天想让哪段想法上场？")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(Color.sottoPrimary)
-                    Text("把已经写好的稿子放进来，我会帮你整理成适合提词的节奏。")
-                        .foregroundStyle(Color.sottoSecondary)
-
-                    TextEditor(text: $model.inputText)
-                        .font(.system(size: 17, weight: .regular, design: .rounded))
-                        .scrollContentBackground(.hidden)
-                        .foregroundStyle(Color.sottoPrimary)
-                        .padding(14)
-                        .frame(minHeight: 300)
-                        .background(.black.opacity(0.22))
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(.white.opacity(0.10), lineWidth: 1)
-                        )
-                }
-                .sottoPanel()
-
-                HStack(spacing: 12) {
-                    Button {
-                        model.createDocumentFromInput()
-                    } label: {
-                        Label("ON STAGE", systemImage: "play.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 13)
-                    }
-                    .buttonStyle(.plain)
-                    .background(Color.sottoGlow.opacity(0.22))
-                    .foregroundStyle(Color.sottoPrimary)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.sottoGlow.opacity(0.42), lineWidth: 1))
-                    .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                    Text("READY.")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color.sottoGlow)
                 }
             }
-            .frame(maxWidth: 680)
 
-            RecentDocumentsView()
-                .frame(width: 320)
+            Spacer()
+
+            HStack(spacing: 28) {
+                SottoStatusBadge(title: "READY.")
+                    .scaleEffect(0.74, anchor: .trailing)
+                Image(systemName: "gearshape")
+                    .font(.system(size: 22, weight: .light))
+                    .foregroundStyle(Color.sottoSecondary)
+            }
+            .padding(.top, 10)
         }
-        .padding(42)
+    }
+
+    private var heroCopy: some View {
+        VStack(spacing: 10) {
+            PixelText(
+                text: "今天想让哪段想法上场？",
+                size: 22,
+                weight: .regular,
+                color: .sottoPrimary,
+                dot: 1.45,
+                spacing: 4.4,
+                tracking: 2
+            )
+            .frame(maxWidth: 360, minHeight: 34)
+
+            Text("把已经写好的稿子放进来，我会帮你整理成适合口播的提词节奏。")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(Color.sottoSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 12)
+    }
+
+    private var materialStage: some View {
+        SottoGlassPanel(role: .hero) {
+            VStack(spacing: 24) {
+                if model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isInputFocused {
+                    VStack(spacing: 10) {
+                        PixelDocumentIcon()
+                            .frame(width: 50, height: 54)
+                            .shadow(color: Color.sottoGlow.opacity(0.7), radius: 18)
+                        Text("粘贴已有口播稿 / Notion 文稿 / AI 对话整理稿")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.sottoPrimary)
+                        Text("支持大段文本粘贴，自动切分句子与节奏。")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.sottoSecondary)
+                    }
+                    .frame(height: 92)
+                    .onTapGesture {
+                        isInputFocused = true
+                    }
+                }
+
+                TextEditor(text: $model.inputText)
+                    .focused($isInputFocused)
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .scrollContentBackground(.hidden)
+                    .foregroundStyle(Color.sottoPrimary)
+                    .padding(16)
+                    .frame(height: model.inputText.isEmpty && !isInputFocused ? 0 : 118)
+                    .opacity(model.inputText.isEmpty && !isInputFocused ? 0 : 1)
+                    .background(Color.black.opacity(0.18))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                capabilityRow
+
+                SottoRhythmLine(amplitude: 0.8, opacity: 0.44)
+                    .frame(height: 28)
+                    .padding(.horizontal, 20)
+
+                Button {
+                    model.createDocumentFromInput()
+                } label: {
+                    HStack(spacing: 14) {
+                        DotField(spacing: 5, dotSize: 1.7, opacity: 0.54)
+                            .frame(width: 42, height: 28)
+                        VStack(spacing: 2) {
+                            Text("ON STAGE")
+                                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                .tracking(2)
+                            Text("准备上场")
+                                .font(.system(size: 11, weight: .medium))
+                                .tracking(4)
+                        }
+                        DotField(spacing: 5, dotSize: 1.7, opacity: 0.54)
+                            .frame(width: 42, height: 28)
+                    }
+                    .foregroundStyle(Color.sottoPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .fill(Color.sottoGlow.opacity(0.11))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.sottoPrimary.opacity(0.72), lineWidth: 1.2)
+                    )
+                    .shadow(color: Color.sottoGlow.opacity(0.55), radius: 20)
+                }
+                .buttonStyle(.plain)
+                .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .opacity(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var capabilityRow: some View {
+        HStack(spacing: 12) {
+            CapabilityItem(icon: "square.grid.3x3", title: "段落识别")
+            CapabilityItem(icon: "scissors", title: "短语切分")
+            CapabilityItem(icon: "rectangle.split.3x1", title: "停顿建议")
+            CapabilityItem(icon: "sun.max", title: "聚光预览")
+        }
+        .foregroundStyle(Color.sottoSecondary)
+        .padding(.top, 2)
+    }
+
+    private var recentDocuments: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("✶")
+                    .foregroundStyle(Color.sottoPrimary)
+                Text("最近稿件")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Color.sottoPrimary)
+                Spacer()
+            }
+
+            SottoGlassPanel(role: .utility) {
+                VStack(spacing: 0) {
+                    if model.recentDocuments.isEmpty {
+                        Text("最近准备过的提词稿会出现在这里。")
+                            .foregroundStyle(Color.sottoMuted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 22)
+                    } else {
+                        ForEach(Array(model.recentDocuments.prefix(1).enumerated()), id: \.element.id) { index, document in
+                            RecentDocumentRow(document: document, index: index) {
+                                model.open(document)
+                            }
+                            if document.id != model.recentDocuments.prefix(1).last?.id {
+                                Divider().overlay(Color.sottoPrimary.opacity(0.10))
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
-private struct RecentDocumentsView: View {
-    @EnvironmentObject private var model: AppModel
+private struct CapabilityItem: View {
+    let icon: String
+    let title: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("最近稿件")
-                .font(.headline)
-                .foregroundStyle(Color.sottoPrimary)
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .light))
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+        }
+    }
+}
 
-            if model.recentDocuments.isEmpty {
-                Text("这里会保留最近准备过的提词稿。")
-                    .foregroundStyle(Color.sottoMuted)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 24)
-            } else {
-                ForEach(model.recentDocuments) { document in
-                    Button {
-                        model.open(document)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(document.title)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.sottoPrimary)
-                                .lineLimit(1)
-                            Text("\(document.sentences.count) 句 · \(document.updatedAt.formatted(date: .abbreviated, time: .shortened))")
-                                .font(.caption)
-                                .foregroundStyle(Color.sottoMuted)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
-                        .background(.white.opacity(0.045))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
+private struct RecentDocumentRow: View {
+    let document: PromptDocument
+    let index: Int
+    let action: () -> Void
+
+    private var initials: String {
+        let letters = ["T", "N", "C"]
+        return letters[index % letters.count]
+    }
+
+    private var status: (String, Color) {
+        switch index % 3 {
+        case 0: ("待持续", .yellow)
+        case 1: ("已切分", .cyan)
+        default: ("润词中", .green)
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                PixelText(text: initials, size: 24, color: index == 2 ? .sottoGreen : .sottoPrimary, dot: 1.8, spacing: 4)
+                    .frame(width: 38, height: 42)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(document.title)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color.sottoPrimary)
+                        .lineLimit(1)
+                    Text("最后编辑  \(document.updatedAt.formatted(date: .omitted, time: .shortened))")
+                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .foregroundStyle(Color.sottoMuted)
+                }
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Circle().fill(status.1).frame(width: 8, height: 8)
+                    Text(status.0)
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(status.1)
+
+                Image(systemName: "ellipsis")
+                    .foregroundStyle(Color.sottoSecondary)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct PixelTeleprompterIcon: View {
+    var body: some View {
+        Canvas { context, _ in
+            let color = Color.sottoPrimary
+            for y in 0..<7 {
+                for x in 0..<9 where y == 0 || y == 6 || x == 0 || x == 8 || (y == 2 && x > 1 && x < 7) || (y == 4 && x > 1 && x < 7) {
+                    context.fill(Path(ellipseIn: CGRect(x: x * 8, y: y * 8, width: 4, height: 4)), with: .color(color))
                 }
             }
+            var stand = Path()
+            stand.move(to: CGPoint(x: 36, y: 58))
+            stand.addLine(to: CGPoint(x: 24, y: 68))
+            stand.move(to: CGPoint(x: 36, y: 58))
+            stand.addLine(to: CGPoint(x: 48, y: 68))
+            context.stroke(stand, with: .color(color.opacity(0.8)), lineWidth: 2)
         }
-        .sottoPanel()
+    }
+}
+
+private struct PixelDocumentIcon: View {
+    var body: some View {
+        PixelText(text: "▤", size: 66, color: .sottoPrimary, dot: 2.6, spacing: 6)
     }
 }
