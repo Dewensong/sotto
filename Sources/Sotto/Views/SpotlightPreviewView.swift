@@ -8,7 +8,7 @@ struct SpotlightPreviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("提词预览", systemImage: "display")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(SottoFont.pixel(15))
                     .foregroundStyle(Color.sottoPrimary)
                 SottoStatusBadge(title: "实时预览中", color: .sottoGreen)
                     .scaleEffect(0.72, anchor: .leading)
@@ -17,7 +17,7 @@ struct SpotlightPreviewView: View {
                     model.openTeleprompter()
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
+                .font(SottoFont.pixel(12))
                 .foregroundStyle(Color.sottoSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
@@ -79,9 +79,9 @@ struct PromptLinesView: View {
 
     private func font(for offset: Int) -> Font {
         if offset == 0 {
-            return .system(size: compact ? 21 : model.settings.fontSize, weight: .semibold, design: .rounded)
+            return SottoFont.pixel(compact ? 21 : model.settings.fontSize)
         }
-        return .system(size: compact ? 15 : max(20, model.settings.fontSize - 8), weight: .medium, design: .rounded)
+        return SottoFont.pixel(compact ? 15 : max(20, model.settings.fontSize - 8))
     }
 
     private func color(for offset: Int) -> Color {

@@ -177,7 +177,7 @@ struct SottoStatusBadge: View {
                 .frame(width: 9, height: 9)
                 .shadow(color: color.opacity(0.75), radius: 8)
             Text(title)
-                .font(.system(size: 15, weight: .medium, design: .monospaced))
+                .font(SottoFont.pixel(15))
                 .tracking(2.6)
         }
         .foregroundStyle(color)
@@ -221,7 +221,7 @@ struct SottoIconButton: View {
                 Image(systemName: systemName)
                 if let title {
                     Text(title)
-                        .font(.system(size: 13, weight: .medium, design: .monospaced))
+                        .font(SottoFont.pixel(13))
                         .tracking(1.4)
                 }
             }

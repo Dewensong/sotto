@@ -1,5 +1,10 @@
 # 推进记录
 
+## 2026-05-04
+- 根据 Dewens 对全局字体范围的确认，将 Sotto 的系统 UI 文案、状态文案、控制文案、首页标题、副标题、步骤提示、分段控制和提词窗口控制层统一改为内置 Fusion Pixel Font 像素字体。
+- 根据 Dewens 最新要求，取消此前对稿件输入、用户稿件、聚光预览正文和正式提词正文的字体豁免，将所有可见文字内容统一改为内置 Fusion Pixel Font 像素字体。
+- 重新核对 `Sources/Sotto/Views` 中的字体引用，确认视图层已不再直接使用系统正文字体；系统字体仅保留在 `SottoFont` 的字体加载失败回退逻辑中。
+
 ## 2026-05-03
 - 根据 Dewens 红框反馈定位首页像素字体未生效问题：SwiftPM 资源被平铺到 bundle 根目录，原实现只在 `Fonts/` 子目录查找，导致 `Sotto` 和首页标题回退为系统字体。
 - 修复 `SottoFont` 字体资源查找逻辑，优先从 `Bundle.module` 根目录加载 `fusion-pixel-12px-proportional.otf`，并保留 `Fonts/` 子目录兼容；新增 `SottoFontTests`，验证 Fusion Pixel Font 能在进程内注册并创建 `NSFont`。

@@ -17,6 +17,7 @@ struct EditorView: View {
                 Text("预览").tag("预览")
             }
             .pickerStyle(.segmented)
+            .font(SottoFont.pixel(12))
             .tint(Color.sottoPrimary)
 
             if lowerPanel == "节奏" {
@@ -38,16 +39,17 @@ struct EditorView: View {
                 model.returnHome()
             } label: {
                 Label("后台", systemImage: "chevron.left")
+                    .font(SottoFont.pixel(13))
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.sottoSecondary)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.currentDocument?.title ?? "新的提词稿")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(SottoFont.pixel(16))
                     .foregroundStyle(Color.sottoPrimary)
                 Text("稿件准备台")
-                    .font(.system(size: 10))
+                    .font(SottoFont.pixel(10))
                     .foregroundStyle(Color.sottoMuted)
             }
 
@@ -57,7 +59,7 @@ struct EditorView: View {
                 model.openTeleprompter()
             } label: {
                 Image(systemName: "rectangle.on.rectangle")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(SottoFont.pixel(16))
                     .frame(width: 44, height: 32)
                     .foregroundStyle(Color.sottoPrimary)
                     .background(Color.sottoPrimary.opacity(0.09))
@@ -75,14 +77,14 @@ struct EditorView: View {
     private var scriptEditor: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("主稿件")
-                .font(.system(size: 14, weight: .semibold))
+                .font(SottoFont.pixel(14))
                 .foregroundStyle(Color.sottoPrimary)
 
             TextEditor(text: Binding(
                 get: { model.currentDocument?.rawText ?? "" },
                 set: { model.updateRawText($0) }
             ))
-            .font(.system(size: 14, design: .rounded))
+            .font(SottoFont.pixel(14))
             .scrollContentBackground(.hidden)
             .foregroundStyle(Color.sottoPrimary)
             .padding(12)
@@ -103,7 +105,7 @@ struct EditorView: View {
                             } label: {
                                 Text(sentence.text)
                                     .lineLimit(1)
-                                    .font(.system(size: 10))
+                                    .font(SottoFont.pixel(10))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
                                     .background(sentence.id == model.selectedSentenceID ? Color.sottoGlow.opacity(0.22) : .white.opacity(0.05))

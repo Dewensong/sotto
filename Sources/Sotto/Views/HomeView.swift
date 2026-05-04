@@ -12,7 +12,7 @@ struct HomeView: View {
             materialStage
             recentDocuments
             Text("专注表达，聚光成句。")
-                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .font(SottoFont.pixel(13))
                 .tracking(3)
                 .foregroundStyle(Color.sottoSecondary)
         }
@@ -30,7 +30,7 @@ struct HomeView: View {
                     PixelText(text: "Sotto", size: 28, color: .sottoPrimary, dot: 1.7, spacing: 4.6)
                         .frame(width: 116, height: 34, alignment: .leading)
                     Text("a quiet backstage for speaking well")
-                        .font(.system(size: 10, weight: .regular))
+                        .font(SottoFont.pixel(10))
                         .foregroundStyle(Color.sottoSecondary)
                 }
             }
@@ -41,7 +41,7 @@ struct HomeView: View {
                 SottoStatusBadge(title: "READY.")
                     .scaleEffect(0.74, anchor: .trailing)
                 Image(systemName: "gearshape")
-                    .font(.system(size: 22, weight: .light))
+                    .font(SottoFont.pixel(22))
                     .foregroundStyle(Color.sottoSecondary)
             }
             .padding(.top, 10)
@@ -62,7 +62,7 @@ struct HomeView: View {
             .frame(maxWidth: 360, minHeight: 34)
 
             Text("把已经写好的稿子放进来，我会帮你整理成适合口播的提词节奏。")
-                .font(.system(size: 12, weight: .regular))
+                .font(SottoFont.pixel(12))
                 .foregroundStyle(Color.sottoSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -78,10 +78,10 @@ struct HomeView: View {
                             .frame(width: 50, height: 54)
                             .shadow(color: Color.sottoGlow.opacity(0.7), radius: 18)
                         Text("粘贴已有口播稿 / Notion 文稿 / AI 对话整理稿")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(SottoFont.pixel(14))
                             .foregroundStyle(Color.sottoPrimary)
                         Text("支持大段文本粘贴，自动切分句子与节奏。")
-                            .font(.system(size: 11))
+                            .font(SottoFont.pixel(11))
                             .foregroundStyle(Color.sottoSecondary)
                     }
                     .frame(height: 92)
@@ -92,7 +92,7 @@ struct HomeView: View {
 
                 TextEditor(text: $model.inputText)
                     .focused($isInputFocused)
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .font(SottoFont.pixel(15))
                     .scrollContentBackground(.hidden)
                     .foregroundStyle(Color.sottoPrimary)
                     .padding(16)
@@ -115,10 +115,10 @@ struct HomeView: View {
                             .frame(width: 42, height: 28)
                         VStack(spacing: 2) {
                             Text("ON STAGE")
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                .font(SottoFont.pixel(18))
                                 .tracking(2)
                             Text("准备上场")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(SottoFont.pixel(11))
                                 .tracking(4)
                         }
                         DotField(spacing: 5, dotSize: 1.7, opacity: 0.54)
@@ -162,7 +162,7 @@ struct HomeView: View {
                 Text("✶")
                     .foregroundStyle(Color.sottoPrimary)
                 Text("最近稿件")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(SottoFont.pixel(16))
                     .foregroundStyle(Color.sottoPrimary)
                 Spacer()
             }
@@ -171,6 +171,7 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     if model.recentDocuments.isEmpty {
                         Text("最近准备过的提词稿会出现在这里。")
+                            .font(SottoFont.pixel(12))
                             .foregroundStyle(Color.sottoMuted)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 22)
@@ -197,9 +198,9 @@ private struct CapabilityItem: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .light))
+                .font(SottoFont.pixel(13))
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(SottoFont.pixel(11))
         }
     }
 }
@@ -230,11 +231,11 @@ private struct RecentDocumentRow: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(document.title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(SottoFont.pixel(15))
                         .foregroundStyle(Color.sottoPrimary)
                         .lineLimit(1)
                     Text("最后编辑  \(document.updatedAt.formatted(date: .omitted, time: .shortened))")
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .font(SottoFont.pixel(11))
                         .foregroundStyle(Color.sottoMuted)
                 }
 
@@ -243,7 +244,7 @@ private struct RecentDocumentRow: View {
                 HStack(spacing: 8) {
                     Circle().fill(status.1).frame(width: 8, height: 8)
                     Text(status.0)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(SottoFont.pixel(12))
                 }
                 .foregroundStyle(status.1)
 

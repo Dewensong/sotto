@@ -55,10 +55,10 @@ struct PromptCardLayout: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("• REC")
-                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .font(SottoFont.pixel(13))
                     .tracking(1.5)
                 Text("01:24")
-                    .font(.system(size: 16, weight: .medium, design: .monospaced))
+                    .font(SottoFont.pixel(16))
             }
             .foregroundStyle(Color.sottoSecondary)
 
@@ -66,7 +66,7 @@ struct PromptCardLayout: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(progressText)
-                    .font(.system(size: 16, weight: .medium, design: .monospaced))
+                    .font(SottoFont.pixel(16))
                 Rectangle()
                     .fill(Color.sottoPrimary.opacity(0.82))
                     .frame(width: 38, height: 3)
@@ -137,7 +137,7 @@ struct PromptCardLayout: View {
         lineLimit: Int
     ) -> some View {
         Text(text)
-            .font(.system(size: size, weight: weight, design: .rounded))
+            .font(SottoFont.pixel(size))
             .lineSpacing(size * 0.18)
             .lineLimit(lineLimit)
             .foregroundStyle(color)
@@ -154,20 +154,20 @@ struct PromptCardLayout: View {
             divider
             Button("−") { stepTiming(-1) }
                 .buttonStyle(.plain)
-                .font(.system(size: 24, weight: .light, design: .monospaced))
+                .font(SottoFont.pixel(24))
                 .foregroundStyle(Color.sottoPrimary.opacity(0.82))
             Text(speedText)
-                .font(.system(size: 15, weight: .medium, design: .monospaced))
+                .font(SottoFont.pixel(15))
                 .tracking(2)
                 .foregroundStyle(Color.sottoSecondary)
             Button("+") { stepTiming(1) }
                 .buttonStyle(.plain)
-                .font(.system(size: 22, weight: .light, design: .monospaced))
+                .font(SottoFont.pixel(22))
                 .foregroundStyle(Color.sottoPrimary.opacity(0.82))
             divider
             Button("EXIT") { model.closeTeleprompter() }
                 .buttonStyle(.plain)
-                .font(.system(size: 14, weight: .medium, design: .monospaced))
+                .font(SottoFont.pixel(14))
                 .tracking(4)
                 .foregroundStyle(Color.sottoSecondary)
         }

@@ -34,16 +34,17 @@ struct PreparingView: View {
                         ForEach(steps, id: \.0) { step in
                             HStack(spacing: 22) {
                                 Text(step.0)
-                                    .font(.system(size: 18, weight: .medium, design: .monospaced))
+                                    .font(SottoFont.pixel(18))
                                     .foregroundStyle(Color.sottoPrimary)
                                     .frame(width: 42, height: 42)
                                     .background(Circle().stroke(Color.sottoPrimary.opacity(step.0 == "1" ? 0.9 : 0.24), lineWidth: 1))
                                     .shadow(color: Color.sottoGlow.opacity(step.0 == "1" ? 0.55 : 0), radius: 14)
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(step.1)
-                                        .font(.system(size: 22, weight: .medium))
+                                        .font(SottoFont.pixel(22))
                                         .foregroundStyle(Color.sottoPrimary)
                                     Text(step.2)
+                                        .font(SottoFont.pixel(14))
                                         .foregroundStyle(Color.sottoMuted)
                                 }
                             }
@@ -55,7 +56,7 @@ struct PreparingView: View {
                         .frame(height: 76)
 
                     Text("舞台尚未点亮，但每一次呼吸都被听见")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(SottoFont.pixel(15))
                         .foregroundStyle(Color.sottoSecondary)
                 }
                 .frame(width: 318, height: 620)
@@ -74,14 +75,14 @@ struct PreparingView: View {
                 PixelText(text: "Sotto", size: 34, color: .sottoPrimary, dot: 2.1, spacing: 5.4)
                     .frame(width: 142, height: 42, alignment: .leading)
                 Text("a quiet backstage for speaking well")
-                    .font(.system(size: 12, weight: .regular))
+                    .font(SottoFont.pixel(12))
                     .lineLimit(1)
                     .foregroundStyle(Color.sottoSecondary)
             }
             Spacer()
             SottoStatusBadge(title: "PREP", color: .sottoPrimary)
             Image(systemName: "gearshape")
-                .font(.system(size: 26, weight: .light))
+                .font(SottoFont.pixel(26))
                 .foregroundStyle(Color.sottoSecondary)
                 .padding(.leading, 14)
         }

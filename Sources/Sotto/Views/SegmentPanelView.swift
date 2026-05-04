@@ -19,6 +19,7 @@ struct SegmentPanelView: View {
                     duration(sentence)
                 } else {
                     Text("选择一句稿件后，可以在这里微调短语边界。")
+                        .font(SottoFont.pixel(13))
                         .foregroundStyle(Color.sottoMuted)
                 }
 
@@ -30,14 +31,14 @@ struct SegmentPanelView: View {
     private var header: some View {
         HStack {
             Image(systemName: "waveform")
-                .font(.system(size: 24, weight: .light))
+                .font(SottoFont.pixel(24))
                 .foregroundStyle(Color.sottoPrimary)
             VStack(alignment: .leading, spacing: 4) {
                 Text("短语切分 / 节奏调整")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(SottoFont.pixel(14))
                     .foregroundStyle(Color.sottoPrimary)
                 Text("当前编辑：第 \(String(format: "%02d", (model.selectedSentenceIndex ?? 0) + 1)) 句")
-                    .font(.caption)
+                    .font(SottoFont.pixel(11))
                     .foregroundStyle(Color.sottoMuted)
             }
             Spacer()
@@ -49,10 +50,10 @@ struct SegmentPanelView: View {
     private func selectedSentence(_ sentence: SentenceSegment) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("当前选中句子")
-                .font(.caption)
+                .font(SottoFont.pixel(11))
                 .foregroundStyle(Color.sottoMuted)
             Text(sentence.text)
-                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .font(SottoFont.pixel(18))
                 .lineLimit(2)
                 .foregroundStyle(Color.sottoPrimary.opacity(0.90))
                 .shadow(color: Color.sottoGlow.opacity(0.12), radius: 8)
@@ -65,10 +66,10 @@ struct SegmentPanelView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("短语切分")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(SottoFont.pixel(15))
                     .foregroundStyle(Color.sottoPrimary)
                 Text("点击切分点")
-                    .font(.caption)
+                    .font(SottoFont.pixel(11))
                     .foregroundStyle(Color.sottoMuted)
             }
 
@@ -76,7 +77,7 @@ struct SegmentPanelView: View {
                 HStack(spacing: 0) {
                     ForEach(Array(sentence.phrases.enumerated()), id: \.element.id) { index, phrase in
                         Text(phrase.text)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(SottoFont.pixel(13))
                             .foregroundStyle(Color.sottoPrimary)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 10)
@@ -123,7 +124,7 @@ struct SegmentPanelView: View {
     private var pauseControl: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("停顿设置", systemImage: "timer")
-                .font(.system(size: 13, weight: .medium))
+                .font(SottoFont.pixel(13))
                 .foregroundStyle(Color.sottoPrimary)
             Picker("停顿设置", selection: $pause) {
                 Text("无").tag("无")
@@ -131,6 +132,7 @@ struct SegmentPanelView: View {
                 Text("长停顿").tag("长停顿")
             }
             .pickerStyle(.segmented)
+            .font(SottoFont.pixel(12))
             .tint(Color.sottoPrimary)
         }
     }
@@ -138,13 +140,14 @@ struct SegmentPanelView: View {
     private var emphasisControl: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("强调设置", systemImage: "target")
-                .font(.system(size: 13, weight: .medium))
+                .font(SottoFont.pixel(13))
                 .foregroundStyle(Color.sottoPrimary)
             Picker("强调设置", selection: $emphasis) {
                 Text("普通").tag("普通")
                 Text("强调").tag("强调")
             }
             .pickerStyle(.segmented)
+            .font(SottoFont.pixel(12))
             .tint(Color.sottoPrimary)
         }
     }
@@ -152,10 +155,10 @@ struct SegmentPanelView: View {
     private func duration(_ sentence: SentenceSegment) -> some View {
         HStack(spacing: 18) {
             Label("当前句预计耗时", systemImage: "clock")
-                .font(.system(size: 12, weight: .medium))
+                .font(SottoFont.pixel(12))
                 .foregroundStyle(Color.sottoSecondary)
             Text("\(estimatedDuration(sentence), specifier: "%.1f") 秒")
-                .font(.system(size: 18, weight: .light, design: .monospaced))
+                .font(SottoFont.pixel(18))
                 .foregroundStyle(Color.sottoPrimary)
         }
     }
