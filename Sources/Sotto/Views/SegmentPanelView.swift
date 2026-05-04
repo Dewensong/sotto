@@ -12,11 +12,15 @@ struct SegmentPanelView: View {
                 header
 
                 if let sentence = model.selectedSentence {
-                    selectedSentence(sentence)
-                    phraseSplitter(sentence)
-                    pauseControl
-                    emphasisControl
-                    duration(sentence)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            selectedSentence(sentence)
+                            phraseSplitter(sentence)
+                            pauseControl
+                            emphasisControl
+                            duration(sentence)
+                        }
+                    }
                 } else {
                     Text("选择一句稿件后，可以在这里微调短语边界。")
                         .font(SottoFont.pixel(13))

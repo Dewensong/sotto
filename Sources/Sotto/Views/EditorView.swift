@@ -5,21 +5,24 @@ struct EditorView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(spacing: 18) {
-            header
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 18) {
+                header
 
-            HStack(alignment: .top, spacing: 18) {
-                scriptEditor
-                    .frame(width: 420, height: 625)
-                SegmentPanelView()
-                    .frame(width: 350, height: 625)
+                HStack(alignment: .top, spacing: 18) {
+                    recognizedSentences
+                        .frame(width: 510, height: 340)
+                    SegmentPanelView()
+                        .frame(width: 734, height: 340)
+                }
+
                 SpotlightPreviewView()
-                    .frame(width: 430, height: 625)
+                    .frame(height: 360)
             }
+            .padding(.horizontal, 28)
+            .padding(.top, 56)
+            .padding(.bottom, 24)
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 78)
-        .padding(.bottom, 20)
     }
 
     private var header: some View {
@@ -74,65 +77,70 @@ struct EditorView: View {
         .frame(height: 54)
     }
 
-    private var scriptEditor: some View {
+    private var recognizedSentences: some View {
         SottoGlassPanel(role: .workbench) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("主稿件", systemImage: "doc.text")
+                    Label("已识别句子", systemImage: "text.alignleft")
                         .font(SottoFont.pixel(18))
                         .foregroundStyle(Color.sottoPrimary)
                     Spacer()
-                    Text("句子切分")
+                    Text("\(model.currentDocument?.sentences.count ?? 0) 句")
                         .font(SottoFont.pixel(11))
                         .foregroundStyle(Color.sottoMuted)
                 }
 
-                TextEditor(text: Binding(
-                    get: { model.currentDocument?.rawText ?? "" },
-                    set: { model.updateRawText($0) }
-                ))
-                .font(SottoFont.pixel(16))
-                .scrollContentBackground(.hidden)
-                .foregroundStyle(Color.sottoPrimary)
-                .padding(18)
-                .frame(height: 330)
-                .background(.black.opacity(0.20))
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(.white.opacity(0.09), lineWidth: 1)
-                )
-
                 if let document = model.currentDocument {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("已识别句子")
-                            .font(SottoFont.pixel(13))
-                            .foregroundStyle(Color.sottoSecondary)
-
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(spacing: 9) {
-                                ForEach(document.sentences) { sentence in
-                                    Button {
-                                        model.selectSentence(sentence)
-                                    } label: {
-                                        Text(sentence.text)
-                                            .lineLimit(2)
-                                            .font(SottoFont.pixel(13))
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 10)
-                                            .background(sentence.id == model.selectedSentenceID ? Color.sottoGlow.opacity(0.24) : .white.opacity(0.05))
-                                            .foregroundStyle(sentence.id == model.selectedSentenceID ? Color.sottoPrimary : Color.sottoSecondary)
-                                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    }
-                                    .buttonStyle(.plain)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 10) {
+                            ForEach(Array(document.sentences.enumerated()), id: \.element.id) { index, sentence in
+                                Button {
+                                    model.selectSentence(sentence)
+                                } label: {
+                                    recognizedSentenceRow(sentence, index: index)
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .frame(maxHeight: .infinity)
                     }
+                    .frame(maxHeight: .infinity)
+                } else {
+                    Text("暂无可编辑句子。")
+                        .font(SottoFont.pixel(13))
+                        .foregroundStyle(Color.sottoMuted)
                 }
             }
         }
+    }
+
+    private func recognizedSentenceRow(_ sentence: SentenceSegment, index: Int) -> some View {
+        let selected = sentence.id == model.selectedSentenceID
+
+        return HStack(alignment: .top, spacing: 14) {
+            Text(String(format: "%02d", index + 1))
+                .font(SottoFont.pixel(13))
+                .foregroundStyle(selected ? Color.sottoPrimary : Color.sottoMuted)
+                .frame(width: 34, alignment: .leading)
+
+            Text(sentence.text)
+                .lineLimit(3)
+                .font(SottoFont.pixel(selected ? 15 : 13))
+                .foregroundStyle(selected ? Color.sottoPrimary : Color.sottoSecondary.opacity(0.78))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Circle()
+                .fill(selected ? Color.sottoPrimary : Color.sottoMuted.opacity(0.36))
+                .frame(width: selected ? 9 : 6, height: selected ? 9 : 6)
+                .padding(.top, 6)
+                .shadow(color: Color.sottoGlow.opacity(selected ? 0.6 : 0), radius: 10)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(selected ? Color.sottoGlow.opacity(0.20) : Color.white.opacity(0.045))
+        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(selected ? Color.sottoPrimary.opacity(0.34) : Color.white.opacity(0.04), lineWidth: 1)
+        )
     }
 }

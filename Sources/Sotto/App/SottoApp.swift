@@ -13,7 +13,7 @@ struct SottoApp: App {
             ContentView()
                 .environmentObject(model)
                 .preferredColorScheme(.dark)
-                .frame(width: model.currentDocument == nil ? 520 : 1320, height: model.currentDocument == nil ? 760 : 760)
+                .frame(width: model.currentDocument == nil ? 520 : 1320, height: model.currentDocument == nil ? 760 : 860)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
