@@ -6,7 +6,7 @@ struct HomeView: View {
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             topBar
             heroCopy
             materialStage
@@ -17,7 +17,7 @@ struct HomeView: View {
                 .foregroundStyle(Color.sottoSecondary)
         }
         .padding(.horizontal, 24)
-        .padding(.top, 20)
+        .padding(.top, 78)
         .padding(.bottom, 12)
     }
 
@@ -66,12 +66,12 @@ struct HomeView: View {
                 .foregroundStyle(Color.sottoSecondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(.top, 12)
+        .padding(.top, 10)
     }
 
     private var materialStage: some View {
         SottoGlassPanel(role: .hero) {
-            VStack(spacing: 24) {
+            VStack(spacing: 26) {
                 if model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isInputFocused {
                     VStack(spacing: 10) {
                         PixelDocumentIcon()
@@ -84,7 +84,7 @@ struct HomeView: View {
                             .font(SottoFont.pixel(11))
                             .foregroundStyle(Color.sottoSecondary)
                     }
-                    .frame(height: 92)
+                    .frame(height: 112)
                     .onTapGesture {
                         isInputFocused = true
                     }
@@ -106,6 +106,7 @@ struct HomeView: View {
                 SottoRhythmLine(amplitude: 0.8, opacity: 0.44)
                     .frame(height: 28)
                     .padding(.horizontal, 20)
+                    .padding(.top, 2)
 
                 Button {
                     model.createDocumentFromInput()
@@ -140,6 +141,7 @@ struct HomeView: View {
                 .buttonStyle(.plain)
                 .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .opacity(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+                .padding(.top, 4)
             }
             .frame(maxWidth: .infinity)
         }

@@ -4,7 +4,7 @@ struct ContentView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             SottoStageBackground()
 
             if model.phase == .preparing {
@@ -18,6 +18,7 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.easeInOut(duration: 0.22), value: model.currentDocument?.id)
     }
 }

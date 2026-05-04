@@ -13,11 +13,11 @@ struct SottoApp: App {
             ContentView()
                 .environmentObject(model)
                 .preferredColorScheme(.dark)
-                .frame(width: 520, height: 860)
+                .frame(width: model.currentDocument == nil ? 520 : 1320, height: model.currentDocument == nil ? 760 : 760)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
-        .defaultSize(width: 520, height: 860)
+        .defaultSize(width: 520, height: 760)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("准备上场") {

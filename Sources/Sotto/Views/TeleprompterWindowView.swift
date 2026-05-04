@@ -107,7 +107,7 @@ struct PromptCardLayout: View {
                         lineLimit: fullWindow ? 3 : 2
                     )
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(height: fullWindow ? 112 : 42, alignment: .leading)
+                        .frame(height: fullWindow ? 112 : 76, alignment: .leading)
                 }
 
                 VStack(alignment: .leading, spacing: fullWindow ? 18 : 8) {
@@ -121,7 +121,7 @@ struct PromptCardLayout: View {
                                 lineLimit: 1
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(height: fullWindow ? 30 : 22, alignment: .leading)
+                            .frame(height: fullWindow ? 30 : 34, alignment: .leading)
                         }
                     }
                 }
