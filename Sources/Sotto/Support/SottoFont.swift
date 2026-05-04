@@ -3,17 +3,16 @@ import CoreText
 import SwiftUI
 
 @MainActor
-enum SottoFont {
+public enum SottoFont {
     private static var registeredPixelFontName: String?
 
-    static func registerBundledFonts() {
+    public static func registerBundledFonts() {
         guard registeredPixelFontName == nil,
-              let url = Bundle.module.url(
-                  forResource: "fusion-pixel-12px-proportional",
-                  withExtension: "otf",
-                  subdirectory: "Fonts"
-              )
-        else { return }
+              let url = bundledFontURL()
+        else {
+            assertionFailure("Fusion Pixel Font resource was not found in Bundle.module.")
+            return
+        }
 
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
 
@@ -25,15 +24,30 @@ enum SottoFont {
         registeredPixelFontName = fontName
     }
 
-    static func pixel(_ size: CGFloat) -> Font {
+    public static var isPixelFontLoaded: Bool {
+        registeredPixelFontName != nil
+    }
+
+    public static func pixel(_ size: CGFloat) -> Font {
         guard let registeredPixelFontName else {
             return .system(size: size, weight: .regular, design: .monospaced)
         }
         return .custom(registeredPixelFontName, size: size)
     }
 
-    static func pixelUIFont(size: CGFloat) -> NSFont? {
+    public static func pixelUIFont(size: CGFloat) -> NSFont? {
         guard let registeredPixelFontName else { return nil }
         return NSFont(name: registeredPixelFontName, size: size)
+    }
+
+    private static func bundledFontURL() -> URL? {
+        Bundle.module.url(
+            forResource: "fusion-pixel-12px-proportional",
+            withExtension: "otf"
+        ) ?? Bundle.module.url(
+            forResource: "fusion-pixel-12px-proportional",
+            withExtension: "otf",
+            subdirectory: "Fonts"
+        )
     }
 }

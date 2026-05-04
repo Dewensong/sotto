@@ -22,7 +22,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SottoTests",
-            dependencies: ["SottoCore"]
+            dependencies: ["SottoCore", "Sotto"]
         )
     ]
 )

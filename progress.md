@@ -1,6 +1,9 @@
 # 推进记录
 
 ## 2026-05-03
+- 根据 Dewens 红框反馈定位首页像素字体未生效问题：SwiftPM 资源被平铺到 bundle 根目录，原实现只在 `Fonts/` 子目录查找，导致 `Sotto` 和首页标题回退为系统字体。
+- 修复 `SottoFont` 字体资源查找逻辑，优先从 `Bundle.module` 根目录加载 `fusion-pixel-12px-proportional.otf`，并保留 `Fonts/` 子目录兼容；新增 `SottoFontTests`，验证 Fusion Pixel Font 能在进程内注册并创建 `NSFont`。
+- 验证结果：`swift test` 通过 11 个测试；`./script/build_and_run.sh --verify` 构建并启动成功；手动视觉验收确认首页 `Sotto` 和「今天想让哪段想法上场？」已变为真实像素字体。
 - 根据 Dewens 对字体使用的进一步反馈，修正像素字体实现方式：`PixelText` 不再叠加 Canvas 点阵 mask，而是直接使用内置 Fusion Pixel Font 渲染连续笔画；首页 `Sotto` 和「今天想让哪段想法上场？」继续使用真实像素字体。
 - 修正提词正文可读性：切分面板当前句、提词预览和正式提词窗口中的句子改回普通系统正文，不再使用像素 / 点阵字体；品牌字标和状态字标保留像素字体。
 - 验证结果：`swift test` 通过 10 个测试；`./script/build_and_run.sh --verify` 构建并启动成功；手动视觉验收确认首页标题不再是点阵 mask，预览和正式提词窗口句子已恢复普通可读文字。
