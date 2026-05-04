@@ -148,10 +148,11 @@ struct PixelText: View {
     var lineLimit: Int?
 
     var body: some View {
-        dotFill
-            .mask(label.foregroundStyle(.white))
-            .overlay(label.foregroundStyle(color.opacity(0.18)).blur(radius: 0.15))
+        label
+            .foregroundStyle(color)
+            .overlay(label.foregroundStyle(color.opacity(0.22)).blur(radius: 0.35))
             .shadow(color: color.opacity(0.30), radius: 8)
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(text))
     }
 
@@ -162,27 +163,6 @@ struct PixelText: View {
             .lineSpacing(size * 0.18)
             .lineLimit(lineLimit)
             .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var dotFill: some View {
-        GeometryReader { proxy in
-            Canvas { context, canvasSize in
-                let columns = Int(canvasSize.width / spacing) + 2
-                let rows = Int(canvasSize.height / spacing) + 2
-                for row in 0...rows {
-                    for column in 0...columns {
-                        let rect = CGRect(
-                            x: CGFloat(column) * spacing,
-                            y: CGFloat(row) * spacing,
-                            width: dot,
-                            height: dot
-                        )
-                        context.fill(Path(ellipseIn: rect), with: .color(color))
-                    }
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-        }
     }
 }
 

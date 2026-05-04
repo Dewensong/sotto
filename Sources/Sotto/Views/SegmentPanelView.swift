@@ -51,7 +51,11 @@ struct SegmentPanelView: View {
             Text("当前选中句子")
                 .font(.caption)
                 .foregroundStyle(Color.sottoMuted)
-            PixelText(text: sentence.text, size: 18, color: .sottoPrimary, dot: 1.25, spacing: 4, tracking: 1.4)
+            Text(sentence.text)
+                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .lineLimit(2)
+                .foregroundStyle(Color.sottoPrimary.opacity(0.90))
+                .shadow(color: Color.sottoGlow.opacity(0.12), radius: 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(minHeight: 42, alignment: .leading)
         }

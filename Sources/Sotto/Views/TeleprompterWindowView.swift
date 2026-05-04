@@ -93,20 +93,17 @@ struct PromptCardLayout: View {
 
             VStack(alignment: .leading, spacing: fullWindow ? 24 : 12) {
                 if fullWindow, let previous = row(offset: -1) {
-                    PixelText(text: previous, size: fullWindow ? 26 : 17, color: Color.sottoSecondary.opacity(0.76), dot: 1.5, spacing: 5, tracking: 3)
+                    promptText(previous, size: 22, color: Color.sottoSecondary.opacity(0.68), weight: .regular, lineLimit: 1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(height: fullWindow ? 42 : 26, alignment: .leading)
                 }
 
                 if let current = currentSentenceText {
-                    PixelText(
-                        text: current,
-                        size: fullWindow ? 30 : 22,
-                        weight: .semibold,
+                    promptText(
+                        current,
+                        size: fullWindow ? 32 : 22,
                         color: .sottoPrimary,
-                        dot: fullWindow ? 2.1 : 1.4,
-                        spacing: fullWindow ? 5.2 : 4.2,
-                        tracking: fullWindow ? 1.8 : 3,
+                        weight: .semibold,
                         lineLimit: fullWindow ? 3 : 2
                     )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -116,13 +113,11 @@ struct PromptCardLayout: View {
                 VStack(alignment: .leading, spacing: fullWindow ? 18 : 8) {
                     ForEach(fullWindow ? [1, 2, 3] : [1, 2], id: \.self) { offset in
                         if let text = row(offset: offset) {
-                            PixelText(
-                                text: text,
-                                size: fullWindow ? max(17, 23 - CGFloat(offset * 2)) : 15,
+                            promptText(
+                                text,
+                                size: fullWindow ? max(16, 22 - CGFloat(offset * 2)) : 15,
                                 color: Color.sottoSecondary.opacity(0.68 - Double(offset) * 0.10),
-                                dot: fullWindow ? 1.4 : 1.2,
-                                spacing: fullWindow ? 4.8 : 4.5,
-                                tracking: fullWindow ? 1.2 : 2.2,
+                                weight: .regular,
                                 lineLimit: 1
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,6 +127,21 @@ struct PromptCardLayout: View {
                 }
             }
         }
+    }
+
+    private func promptText(
+        _ text: String,
+        size: CGFloat,
+        color: Color,
+        weight: Font.Weight,
+        lineLimit: Int
+    ) -> some View {
+        Text(text)
+            .font(.system(size: size, weight: weight, design: .rounded))
+            .lineSpacing(size * 0.18)
+            .lineLimit(lineLimit)
+            .foregroundStyle(color)
+            .shadow(color: Color.sottoGlow.opacity(weight == .semibold ? 0.26 : 0.10), radius: weight == .semibold ? 12 : 6)
     }
 
     private var controls: some View {
