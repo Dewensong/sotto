@@ -17,13 +17,16 @@ final class AppModel: ObservableObject {
     @Published var selectedSentenceID: SentenceSegment.ID?
     @Published var timing: TimingProfile = .standard
     @Published var session: PromptSession?
+    @Published var phraseProgress: Double = 0
     @Published var settings = TeleprompterSettings()
     @Published var recentDocuments: [PromptDocument] = []
     @Published var errorMessage: String?
+    @Published var showRhythmReadyAnnouncement = false
 
     private let segmentationService = SegmentationService()
     private let store = PromptDocumentStore()
     private let teleprompterWindowController = TeleprompterWindowController()
+    private var lastPlaybackTick: Date?
 
     init() {
         loadRecentDocuments()
@@ -47,16 +50,19 @@ final class AppModel: ObservableObject {
         phase = .preparing
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(780))
-            open(document)
+            open(document, announceRhythmReady: true)
             saveCurrentDocument()
         }
     }
 
-    func open(_ document: PromptDocument) {
+    func open(_ document: PromptDocument, announceRhythmReady: Bool = false) {
         currentDocument = document
         selectedSentenceID = document.sentences.first?.id
         session = PromptSession(document: document, timing: timing)
+        phraseProgress = 0
+        lastPlaybackTick = nil
         phase = .editor
+        showRhythmReadyAnnouncement = announceRhythmReady
     }
 
     func returnHome() {
@@ -64,6 +70,9 @@ final class AppModel: ObservableObject {
         currentDocument = nil
         session = nil
         selectedSentenceID = nil
+        phraseProgress = 0
+        lastPlaybackTick = nil
+        showRhythmReadyAnnouncement = false
         phase = .home
     }
 
@@ -110,6 +119,8 @@ final class AppModel: ObservableObject {
             session.currentSentenceIndex = index
             session.currentPhraseIndex = 0
             self.session = session
+            phraseProgress = 0
+            lastPlaybackTick = nil
         }
     }
 
@@ -122,6 +133,8 @@ final class AppModel: ObservableObject {
         document.updatedAt = Date()
         currentDocument = document
         session = PromptSession(document: document, timing: timing, currentSentenceIndex: sentenceIndex)
+        phraseProgress = 0
+        lastPlaybackTick = nil
         saveCurrentDocument()
     }
 
@@ -130,12 +143,15 @@ final class AppModel: ObservableObject {
         if var session {
             session.updateTiming(profile)
             self.session = session
+            phraseProgress = 0
+            lastPlaybackTick = session.isPlaying ? Date() : nil
         }
     }
 
     func togglePlayback() {
         guard var session else { return }
         session.togglePlayback()
+        lastPlaybackTick = session.isPlaying ? Date() : nil
         self.session = session
     }
 
@@ -143,6 +159,8 @@ final class AppModel: ObservableObject {
         guard var session else { return }
         session.nextSentence()
         selectedSentenceID = session.currentSentence?.id
+        phraseProgress = 0
+        lastPlaybackTick = session.isPlaying ? Date() : nil
         self.session = session
     }
 
@@ -150,6 +168,8 @@ final class AppModel: ObservableObject {
         guard var session else { return }
         session.previousSentence()
         selectedSentenceID = session.currentSentence?.id
+        phraseProgress = 0
+        lastPlaybackTick = session.isPlaying ? Date() : nil
         self.session = session
     }
 
@@ -157,7 +177,51 @@ final class AppModel: ObservableObject {
         guard var session else { return }
         session.advancePhrase()
         selectedSentenceID = session.currentSentence?.id
+        phraseProgress = 0
+        lastPlaybackTick = session.isPlaying ? Date() : nil
         self.session = session
+    }
+
+    func tickPlayback(now: Date = Date()) {
+        guard var session, session.isPlaying, let phrase = session.currentPhrase else {
+            lastPlaybackTick = nil
+            return
+        }
+
+        guard let lastPlaybackTick else {
+            self.lastPlaybackTick = now
+            return
+        }
+
+        let elapsed = now.timeIntervalSince(lastPlaybackTick)
+        self.lastPlaybackTick = now
+        let duration = max(0.35, session.timing.duration(for: phrase))
+        var progress = phraseProgress + elapsed / duration
+
+        while progress >= 1, session.isPlaying {
+            progress -= 1
+            session.advancePhrase()
+            selectedSentenceID = session.currentSentence?.id
+            if session.currentPhrase == nil || !session.isPlaying {
+                progress = 0
+            }
+        }
+
+        phraseProgress = min(max(progress, 0), 1)
+        self.session = session
+    }
+
+    func adjustFontSize(_ delta: Double) {
+        settings.fontSize = min(max(settings.fontSize + delta, 24), 48)
+    }
+
+    func adjustOpacity(_ delta: Double) {
+        settings.opacity = min(max(settings.opacity + delta, 0.55), 1)
+    }
+
+    func adjustPromptWidth(_ delta: Double) {
+        settings.width = min(max(settings.width + delta, 620), 980)
+        teleprompterWindowController.resize(to: CGSize(width: settings.width, height: 460))
     }
 
     func openTeleprompter() {

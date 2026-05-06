@@ -16,7 +16,7 @@ final class TeleprompterWindowController {
             .environmentObject(model)
 
         let hostingView = NSHostingView(rootView: rootView)
-        let windowSize = CGSize(width: model.settings.width, height: 430)
+        let windowSize = CGSize(width: model.settings.width, height: 460)
         let window = PromptPanel(
             contentRect: CGRect(origin: .zero, size: windowSize),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -41,6 +41,15 @@ final class TeleprompterWindowController {
     func close() {
         window?.close()
         window = nil
+    }
+
+    func resize(to size: CGSize) {
+        guard let window else { return }
+        let frame = window.frame
+        let centerX = frame.midX
+        let topY = frame.maxY
+        let origin = CGPoint(x: centerX - size.width / 2, y: topY - size.height)
+        window.setFrame(CGRect(origin: origin, size: size), display: true, animate: true)
     }
 
     private func position(_ window: NSWindow, size: CGSize) {

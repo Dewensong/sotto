@@ -3,14 +3,21 @@ import SottoCore
 
 struct HomeView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isInputFocused: Bool
+    @State private var stageHovering = false
+    @State private var stageSparking = false
 
     var body: some View {
         VStack(spacing: 10) {
             topBar
+                .sottoEntrance()
             heroCopy
+                .sottoEntrance(delay: 0.04)
             materialStage
+                .sottoEntrance(delay: 0.08)
             recentDocuments
+                .sottoEntrance(delay: 0.12)
             Text("专注表达，聚光成句。")
                 .font(SottoFont.pixel(13))
                 .tracking(3)
@@ -27,7 +34,7 @@ struct HomeView: View {
                 PixelTeleprompterIcon()
                     .frame(width: 46, height: 40)
                 VStack(alignment: .leading, spacing: 3) {
-                    PixelText(text: "Sotto", size: 28, color: .sottoPrimary, dot: 1.7, spacing: 4.6)
+                    SottoSignalText(text: "Sotto", size: 28, color: .sottoPrimary, dot: 1.7, spacing: 4.6)
                         .frame(width: 116, height: 34, alignment: .leading)
                     Text("a quiet backstage for speaking well")
                         .font(SottoFont.pixel(10))
@@ -70,81 +77,84 @@ struct HomeView: View {
     }
 
     private var materialStage: some View {
-        SottoGlassPanel(role: .hero) {
-            VStack(spacing: 26) {
-                if model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isInputFocused {
-                    VStack(spacing: 10) {
-                        PixelDocumentIcon()
-                            .frame(width: 50, height: 54)
-                            .shadow(color: Color.sottoGlow.opacity(0.7), radius: 18)
-                        Text("粘贴已有口播稿 / Notion 文稿 / AI 对话整理稿")
-                            .font(SottoFont.pixel(14))
-                            .foregroundStyle(Color.sottoPrimary)
-                        Text("支持大段文本粘贴，自动切分句子与节奏。")
-                            .font(SottoFont.pixel(11))
-                            .foregroundStyle(Color.sottoSecondary)
-                    }
-                    .frame(height: 112)
-                    .onTapGesture {
-                        isInputFocused = true
-                    }
+        VStack(spacing: 24) {
+            if model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isInputFocused {
+                VStack(spacing: 10) {
+                    PixelDocumentIcon()
+                        .frame(width: 50, height: 54)
+                        .shadow(color: Color.sottoGlow.opacity(0.46), radius: 14)
+                    Text("粘贴已有口播稿 / Notion 文稿 / AI 对话整理稿")
+                        .font(SottoFont.pixel(14))
+                        .foregroundStyle(Color.sottoPrimary)
+                    Text("支持大段文本粘贴，自动切分句子与节奏。")
+                        .font(SottoFont.pixel(11))
+                        .foregroundStyle(Color.sottoSecondary)
                 }
-
-                TextEditor(text: $model.inputText)
-                    .focused($isInputFocused)
-                    .font(SottoFont.pixel(15))
-                    .scrollContentBackground(.hidden)
-                    .foregroundStyle(Color.sottoPrimary)
-                    .padding(16)
-                    .frame(height: model.inputText.isEmpty && !isInputFocused ? 0 : 118)
-                    .opacity(model.inputText.isEmpty && !isInputFocused ? 0 : 1)
-                    .background(Color.black.opacity(0.18))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                capabilityRow
-
-                SottoRhythmLine(amplitude: 0.8, opacity: 0.44)
-                    .frame(height: 28)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 2)
-
-                Button {
-                    model.createDocumentFromInput()
-                } label: {
-                    HStack(spacing: 14) {
-                        DotField(spacing: 5, dotSize: 1.7, opacity: 0.54)
-                            .frame(width: 42, height: 28)
-                        VStack(spacing: 2) {
-                            Text("ON STAGE")
-                                .font(SottoFont.pixel(18))
-                                .tracking(2)
-                            Text("准备上场")
-                                .font(SottoFont.pixel(11))
-                                .tracking(4)
-                        }
-                        DotField(spacing: 5, dotSize: 1.7, opacity: 0.54)
-                            .frame(width: 42, height: 28)
-                    }
-                    .foregroundStyle(Color.sottoPrimary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(Color.sottoGlow.opacity(0.11))
-                    )
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.sottoPrimary.opacity(0.72), lineWidth: 1.2)
-                    )
-                    .shadow(color: Color.sottoGlow.opacity(0.55), radius: 20)
+                .frame(height: 112)
+                .onTapGesture {
+                    isInputFocused = true
                 }
-                .buttonStyle(.plain)
-                .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .opacity(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
-                .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity)
+
+            TextEditor(text: $model.inputText)
+                .focused($isInputFocused)
+                .font(SottoFont.pixel(15))
+                .scrollContentBackground(.hidden)
+                .foregroundStyle(Color.sottoPrimary)
+                .padding(16)
+                .frame(height: model.inputText.isEmpty && !isInputFocused ? 0 : 118)
+                .opacity(model.inputText.isEmpty && !isInputFocused ? 0 : 1)
+                .background(Color.black.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            capabilityRow
+
+            SottoRhythmLine(amplitude: 0.76, opacity: 0.34)
+                .frame(height: 28)
+                .padding(.horizontal, 20)
+                .padding(.top, 2)
+
+            Button {
+                confirmStageEntrance()
+            } label: {
+                HStack(spacing: 14) {
+                    DotField(spacing: 5, dotSize: 1.7, opacity: stageHovering ? 0.58 : 0.42, drift: stageHovering ? 1.1 : 0.55)
+                        .frame(width: 42, height: 28)
+                    VStack(spacing: 2) {
+                        Text("ON STAGE")
+                            .font(SottoFont.pixel(18))
+                            .tracking(2)
+                        Text("准备上场")
+                            .font(SottoFont.pixel(11))
+                            .tracking(4)
+                    }
+                    DotField(spacing: 5, dotSize: 1.7, opacity: stageHovering ? 0.58 : 0.42, drift: stageHovering ? 1.1 : 0.55)
+                        .frame(width: 42, height: 28)
+                }
+                .foregroundStyle(Color.sottoPrimary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(Color.sottoGlow.opacity(0.09))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(Color.sottoPrimary.opacity(stageHovering ? 0.54 : 0.34), lineWidth: 1)
+                )
+                .shadow(color: Color.sottoGlow.opacity(stageHovering ? 0.38 : 0.26), radius: stageHovering ? 20 : 16)
+            }
+            .overlay(SottoConfirmationSpark(isActive: stageSparking, radius: 20))
+            .buttonStyle(.plain)
+            .scaleEffect(stageHovering ? 1.025 : 1)
+            .animation(SottoMotionTokens.hover, value: stageHovering)
+            .onHover { stageHovering = $0 }
+            .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+            .padding(.top, 4)
         }
+        .frame(maxWidth: .infinity)
+        .sottoEditorPanel(cornerRadius: 18)
     }
 
     private var capabilityRow: some View {
@@ -169,26 +179,39 @@ struct HomeView: View {
                 Spacer()
             }
 
-            SottoGlassPanel(role: .utility) {
-                VStack(spacing: 0) {
-                    if model.recentDocuments.isEmpty {
-                        Text("最近准备过的提词稿会出现在这里。")
-                            .font(SottoFont.pixel(12))
-                            .foregroundStyle(Color.sottoMuted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 22)
-                    } else {
-                        ForEach(Array(model.recentDocuments.prefix(1).enumerated()), id: \.element.id) { index, document in
-                            RecentDocumentRow(document: document, index: index) {
-                                model.open(document)
-                            }
-                            if document.id != model.recentDocuments.prefix(1).last?.id {
-                                Divider().overlay(Color.sottoPrimary.opacity(0.10))
-                            }
+            VStack(spacing: 0) {
+                if model.recentDocuments.isEmpty {
+                    Text("最近准备过的提词稿会出现在这里。")
+                        .font(SottoFont.pixel(12))
+                        .foregroundStyle(Color.sottoMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 22)
+                } else {
+                    ForEach(Array(model.recentDocuments.prefix(1).enumerated()), id: \.element.id) { index, document in
+                        RecentDocumentRow(document: document, index: index) {
+                            model.open(document)
                         }
                     }
                 }
             }
+            .sottoEditorPanel(cornerRadius: 18)
+        }
+    }
+
+    private func confirmStageEntrance() {
+        guard !model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !stageSparking else { return }
+        guard !reduceMotion else {
+            model.createDocumentFromInput()
+            return
+        }
+
+        stageSparking = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            model.createDocumentFromInput()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            stageSparking = false
         }
     }
 }

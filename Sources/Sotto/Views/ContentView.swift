@@ -5,7 +5,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            SottoStageBackground()
+            SottoStageBackground(intensity: model.currentDocument == nil && model.phase != .preparing ? 0.72 : 1)
 
             if model.phase == .preparing {
                 PreparingView()

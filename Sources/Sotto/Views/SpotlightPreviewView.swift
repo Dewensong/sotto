@@ -5,32 +5,29 @@ struct SpotlightPreviewView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("提词预览", systemImage: "display")
-                    .font(SottoFont.pixel(15))
+                    .font(SottoFont.pixel(13))
                     .foregroundStyle(Color.sottoPrimary)
                 SottoStatusBadge(title: "实时预览中", color: .sottoGreen)
-                    .scaleEffect(0.72, anchor: .leading)
+                    .scaleEffect(0.64, anchor: .leading)
                 Spacer()
                 Button("全屏预览 ↗") {
                     model.openTeleprompter()
                 }
                 .buttonStyle(.plain)
-                .font(SottoFont.pixel(12))
+                .font(SottoFont.pixel(11))
                 .foregroundStyle(Color.sottoSecondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Color.white.opacity(0.045))
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.035))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
             PromptCardLayout(fullWindow: false)
         }
-        .sottoPanel()
-        .onReceive(Timer.publish(every: 1.1, on: .main, in: .common).autoconnect()) { _ in
-            model.advancePhrase()
-        }
+        .sottoEditorPanel(cornerRadius: 16)
     }
 }
 
