@@ -46,7 +46,10 @@ final class AppModel: ObservableObject {
     private var playbackSegmentStart: Date?
     private var playbackPausedElapsed: TimeInterval = 0
     private var voiceGateQuietFrameCount: Int = 0
+    private var toastDismissTask: Task<Void, Never>?
     private var cancellables: Set<AnyCancellable> = []
+
+    private static let defaultDocumentTitle = "新的提词稿"
 
     private let promptFontSizeRange: ClosedRange<Double> = 24...48
     private let promptOpacityRange: ClosedRange<Double> = 0.55...1
@@ -98,7 +101,7 @@ final class AppModel: ObservableObject {
     func saveInputToLibrary() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        var document = segmentationService.segment(trimmed, title: "新的提词稿", timing: timing)
+        var document = segmentationService.segment(trimmed, title: Self.defaultDocumentTitle, timing: timing)
         document.title = generatedTitle(from: trimmed)
         do {
             try store.save(document)
@@ -112,7 +115,7 @@ final class AppModel: ObservableObject {
     func createDocumentFromInput() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        var document = segmentationService.segment(trimmed, title: "新的提词稿", timing: timing)
+        var document = segmentationService.segment(trimmed, title: Self.defaultDocumentTitle, timing: timing)
         document.title = generatedTitle(from: trimmed)
 
         do {
@@ -131,16 +134,18 @@ final class AppModel: ObservableObject {
     }
 
     private func triggerSaveToast(_ message: String) {
+        toastDismissTask?.cancel()
         toast = SottoToastMessage(text: message, kind: .success)
-        Task { @MainActor in
+        toastDismissTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
             toast = nil
         }
     }
 
     private func triggerErrorToast(_ message: String) {
+        toastDismissTask?.cancel()
         toast = SottoToastMessage(text: message, kind: .error)
-        Task { @MainActor in
+        toastDismissTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
             toast = nil
         }
@@ -215,8 +220,6 @@ final class AppModel: ObservableObject {
                 session = nil
                 selectedSentenceID = nil
                 phase = .home
-            } else if phase == .documentManager {
-                phase = .documentManager
             }
             loadRecentDocuments()
         } catch {
@@ -696,9 +699,9 @@ final class AppModel: ObservableObject {
     }
 
     private func generatedTitle(from text: String) -> String {
-        let firstLine = text.split(whereSeparator: \.isNewline).first.map(String.init) ?? "新的提词稿"
+        let firstLine = text.split(whereSeparator: \.isNewline).first.map(String.init) ?? Self.defaultDocumentTitle
         let title = firstLine.trimmingCharacters(in: .whitespacesAndNewlines)
-        return title.isEmpty ? "新的提词稿" : String(title.prefix(18))
+        return title.isEmpty ? Self.defaultDocumentTitle : String(title.prefix(18))
     }
 }
 

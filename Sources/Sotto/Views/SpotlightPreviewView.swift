@@ -25,7 +25,7 @@ struct SpotlightPreviewView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
-            PromptCardLayout(fullWindow: false)
+            PromptWindowLayout(fullWindow: false)
                 .padding(.top, 2)
         }
         .sottoEditorPanel(cornerRadius: 16, fillOpacity: 0.56, borderOpacity: 0.10)

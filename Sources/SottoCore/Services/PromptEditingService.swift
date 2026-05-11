@@ -92,8 +92,10 @@ public enum PromptEditingService {
         )
     }
 
+    private static let segmenter = SegmentationService()
+
     private static func phrases(for text: String, timing: TimingProfile) -> [PhraseSegment] {
-        SegmentationService().splitPhrases(text).map { phraseText in
+        segmenter.splitPhrases(text).map { phraseText in
             var phrase = PhraseSegment(text: phraseText)
             phrase.estimatedDuration = timing.duration(for: phrase)
             return phrase

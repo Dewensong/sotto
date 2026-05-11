@@ -6,7 +6,7 @@ struct TeleprompterWindowView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        PromptCardLayout(fullWindow: true)
+        PromptWindowLayout(fullWindow: true)
             .frame(minWidth: 620, maxWidth: .infinity, minHeight: 380, maxHeight: .infinity)
             .background(Color.clear)
             .onReceive(Timer.publish(every: 1 / 30, on: .main, in: .common).autoconnect()) { date in
@@ -15,7 +15,7 @@ struct TeleprompterWindowView: View {
     }
 }
 
-struct PromptCardLayout: View {
+struct PromptWindowLayout: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPromptHovering = false
@@ -434,16 +434,16 @@ struct PromptCardLayout: View {
                 PromptResizeGrip(anchor: .right, startSize: proxy.size)
                     .frame(width: 30, height: max(proxy.size.height - 120, 80))
                     .position(x: proxy.size.width - 15, y: proxy.size.height / 2)
-                PromptResizeGrip(corner: .topLeft, startSize: proxy.size)
+                PromptResizeGrip(anchor: .topLeft, startSize: proxy.size)
                     .frame(width: 64, height: 64)
                     .position(x: 32, y: 32)
-                PromptResizeGrip(corner: .topRight, startSize: proxy.size)
+                PromptResizeGrip(anchor: .topRight, startSize: proxy.size)
                     .frame(width: 64, height: 64)
                     .position(x: proxy.size.width - 32, y: 32)
-                PromptResizeGrip(corner: .bottomLeft, startSize: proxy.size)
+                PromptResizeGrip(anchor: .bottomLeft, startSize: proxy.size)
                     .frame(width: 64, height: 64)
                     .position(x: 32, y: proxy.size.height - 32)
-                PromptResizeGrip(corner: .bottomRight, startSize: proxy.size)
+                PromptResizeGrip(anchor: .bottomRight, startSize: proxy.size)
                     .frame(width: 64, height: 64)
                     .position(x: proxy.size.width - 32, y: proxy.size.height - 32)
             }
@@ -565,17 +565,6 @@ private struct PromptResizeGrip: View {
     let anchor: PromptResizeAnchor
     let startSize: CGSize
     @EnvironmentObject private var model: AppModel
-    @State private var dragStartSize: CGSize?
-
-    init(anchor: PromptResizeAnchor, startSize: CGSize) {
-        self.anchor = anchor
-        self.startSize = startSize
-    }
-
-    init(corner: PromptResizeAnchor, startSize: CGSize) {
-        self.anchor = corner
-        self.startSize = startSize
-    }
 
     var body: some View {
         Color.clear
@@ -583,15 +572,10 @@ private struct PromptResizeGrip: View {
             .gesture(
                 DragGesture(minimumDistance: 1)
                     .onChanged { value in
-                        let base = dragStartSize ?? startSize
-                        dragStartSize = base
                         model.resizePromptWindow(
-                            to: resized(base: base, translation: value.translation),
+                            to: resized(base: startSize, translation: value.translation),
                             anchor: anchor
                         )
-                    }
-                    .onEnded { _ in
-                        dragStartSize = nil
                     }
             )
     }
@@ -656,7 +640,7 @@ private struct CurrentSentenceSweepView: View {
     private var currentTokenOrdinal: Int {
         let currentTokens = displayTokens.filter { $0.phraseIndex == currentPhraseIndex && !$0.isWhitespace }
         guard !currentTokens.isEmpty else { return 0 }
-        return min(max(Int((progress * Double(currentTokens.count)).rounded(.down)), 0), currentTokens.count - 1)
+        return max(min(Int((progress * Double(currentTokens.count)).rounded(.down)), currentTokens.count - 1), 0)
     }
 
     private func state(for token: SentenceSweepToken) -> PhraseSweepState {

@@ -5,6 +5,7 @@ public final class PromptDocumentStore {
     private let fileURL: URL
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private var cachedDocuments: [PromptDocument]?
 
     public init(directory: URL? = nil) {
         let baseDirectory = directory ?? FileManager.default
@@ -38,21 +39,31 @@ public final class PromptDocumentStore {
         }
 
         documents.sort { $0.updatedAt > $1.updatedAt }
+        cachedDocuments = documents
         let data = try encoder.encode(documents)
         try data.write(to: fileURL, options: .atomic)
     }
 
     public func loadRecentDocuments() throws -> [PromptDocument] {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
-        let data = try Data(contentsOf: fileURL)
-        let documents = try decoder.decode([PromptDocument].self, from: data)
-        return documents.sorted { $0.updatedAt > $1.updatedAt }
+        if let cached = cachedDocuments { return cached }
+        let documents = try loadFromDisk()
+        cachedDocuments = documents
+        return documents
     }
 
     public func remove(id: PromptDocument.ID) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let documents = try loadRecentDocuments().filter { $0.id != id }
+        var documents = try loadRecentDocuments()
+        documents.removeAll { $0.id == id }
+        cachedDocuments = documents
         let data = try encoder.encode(documents)
         try data.write(to: fileURL, options: .atomic)
+    }
+
+    private func loadFromDisk() throws -> [PromptDocument] {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
+        let data = try Data(contentsOf: fileURL)
+        let documents = try decoder.decode([PromptDocument].self, from: data)
+        return documents.sorted { $0.updatedAt > $1.updatedAt }
     }
 }

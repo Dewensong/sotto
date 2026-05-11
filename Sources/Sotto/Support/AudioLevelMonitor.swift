@@ -2,6 +2,9 @@ import AVFoundation
 import Combine
 import Foundation
 
+// @unchecked Sendable is safe here: all @Published mutations are dispatched
+// to MainActor via DispatchQueue.main.async, and normalizedLevel is a
+// nonisolated pure function that runs on the Core Audio tap queue.
 final class AudioLevelMonitor: ObservableObject, @unchecked Sendable {
     @Published private(set) var level: Double = 0
     @Published private(set) var isListening = false
