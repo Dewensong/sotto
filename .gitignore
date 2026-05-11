@@ -25,6 +25,7 @@ artifacts/raw/
 artifacts/temp/
 artifacts/cache/
 artifacts/downloads/
+artifacts/reference-repos/
 
 # build outputs
 .build/

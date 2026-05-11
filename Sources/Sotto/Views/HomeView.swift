@@ -1,12 +1,21 @@
+import AppKit
 import SwiftUI
 import SottoCore
+import UniformTypeIdentifiers
 
 struct HomeView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @FocusState private var isInputFocused: Bool
+    @State private var isInputFocused: Bool = false
     @State private var stageHovering = false
     @State private var stageSparking = false
+    @State private var isEditorExpanded = false
+    @State private var hoverTrash = false
+    @State private var hoverExpand = false
+    @State private var hoverFile = false
+    @State private var hoverSave = false
+    @State private var hoverManageDocs = false
+    @State private var hoverSettings = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -14,18 +23,33 @@ struct HomeView: View {
                 .sottoEntrance()
             heroCopy
                 .sottoEntrance(delay: 0.04)
+                .onTapGesture { tryDefocus() }
             materialStage
                 .sottoEntrance(delay: 0.08)
             recentDocuments
                 .sottoEntrance(delay: 0.12)
+                .blur(radius: isEditorExpanded ? 6 : 0)
             Text("专注表达，聚光成句。")
                 .font(SottoFont.pixel(13))
                 .tracking(3)
                 .foregroundStyle(Color.sottoSecondary)
+                .onTapGesture { tryDefocus() }
+                .blur(radius: isEditorExpanded ? 6 : 0)
         }
         .padding(.horizontal, 24)
         .padding(.top, 78)
         .padding(.bottom, 12)
+        .background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { tryDefocus() }
+        )
+    }
+
+    private func tryDefocus() {
+        if model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, isInputFocused {
+            isInputFocused = false
+        }
     }
 
     private var topBar: some View {
@@ -47,18 +71,33 @@ struct HomeView: View {
             HStack(spacing: 28) {
                 SottoStatusBadge(title: "READY.")
                     .scaleEffect(0.74, anchor: .trailing)
-                Image(systemName: "gearshape")
-                    .font(SottoFont.pixel(22))
-                    .foregroundStyle(Color.sottoSecondary)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        model.toggleSettingsPanel()
+                    }
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(SottoFont.pixel(22))
+                        .foregroundStyle(Color.sottoSecondary)
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .rotationEffect(.degrees(model.settingsRotation))
+                .scaleEffect(hoverSettings ? 1.15 : 1.0)
+                .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverSettings)
+                .onHover { hoverSettings = $0 }
             }
             .padding(.top, 10)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { tryDefocus() }
+        .simultaneousGesture(TapGesture().onEnded { tryDefocus() })
     }
 
     private var heroCopy: some View {
         VStack(spacing: 10) {
             PixelText(
-                text: "今天想让哪段想法上场？",
+                text: "让今天的 demo 好好上场",
                 size: 22,
                 weight: .regular,
                 color: .sottoPrimary,
@@ -68,7 +107,7 @@ struct HomeView: View {
             )
             .frame(maxWidth: 360, minHeight: 34)
 
-            Text("把已经写好的稿子放进来，我会帮你整理成适合口播的提词节奏。")
+            Text("把已有稿件放进来，整理成适合录屏、讲解和 vibe coding 的提词节奏。")
                 .font(SottoFont.pixel(12))
                 .foregroundStyle(Color.sottoSecondary)
                 .multilineTextAlignment(.center)
@@ -77,81 +116,192 @@ struct HomeView: View {
     }
 
     private var materialStage: some View {
-        VStack(spacing: 24) {
-            if model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isInputFocused {
-                VStack(spacing: 10) {
-                    PixelDocumentIcon()
-                        .frame(width: 50, height: 54)
-                        .shadow(color: Color.sottoGlow.opacity(0.46), radius: 14)
-                    Text("粘贴已有口播稿 / Notion 文稿 / AI 对话整理稿")
-                        .font(SottoFont.pixel(14))
-                        .foregroundStyle(Color.sottoPrimary)
-                    Text("支持大段文本粘贴，自动切分句子与节奏。")
-                        .font(SottoFont.pixel(11))
-                        .foregroundStyle(Color.sottoSecondary)
-                }
-                .frame(height: 112)
-                .onTapGesture {
-                    isInputFocused = true
+        let textIsEmpty = model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let showEditor = isInputFocused || !textIsEmpty
+
+        return VStack(spacing: 24) {
+            Group {
+                if showEditor {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 6) {
+                            Button {
+                                model.inputText = ""
+                                isInputFocused = true
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Color.sottoSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.white.opacity(0.04))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .scaleEffect(hoverTrash ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverTrash)
+                            .onHover { hoverTrash = $0 }
+
+                            Button {
+                                withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
+                                    isEditorExpanded.toggle()
+                                }
+                                if isEditorExpanded {
+                                    isInputFocused = true
+                                }
+                            } label: {
+                                Image(systemName: isEditorExpanded
+                                    ? "arrow.down.right.and.arrow.up.left"
+                                    : "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Color.sottoSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.white.opacity(0.04))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .scaleEffect(hoverExpand ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverExpand)
+                            .onHover { hoverExpand = $0 }
+
+                            Spacer()
+
+                            Button {
+                                model.saveInputToLibrary()
+                            } label: {
+                                Image(systemName: "tray.and.arrow.down")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Color.sottoSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.white.opacity(0.04))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .scaleEffect(hoverSave ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverSave)
+                            .onHover { hoverSave = $0 }
+
+                            Button {
+                                openFilePicker()
+                            } label: {
+                                Image(systemName: "doc.badge.plus")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Color.sottoSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.white.opacity(0.04))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .scaleEffect(hoverFile ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverFile)
+                            .onHover { hoverFile = $0 }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
+                        .padding(.bottom, 2)
+
+                        PasteHandlingTextView(
+                            text: $model.inputText,
+                            isFocused: isInputFocused,
+                            onFocusChange: { isInputFocused = $0 },
+                            onFileURLsPasted: handleFileURLs
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                        .frame(height: isEditorExpanded ? 340 : 100)
+                    }
+                    .background(Color.black.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    Button {
+                        isInputFocused = true
+                    } label: {
+                        VStack(spacing: 10) {
+                            PixelDocumentIcon()
+                                .frame(width: 50, height: 54)
+                                .shadow(color: Color.sottoGlow.opacity(0.46), radius: 14)
+                            Text("粘贴口播稿 / Notion 文稿 / AI 对话整理稿")
+                                .font(SottoFont.pixel(14))
+                                .foregroundStyle(Color.sottoPrimary)
+                            Text("先把表达准备好，再把窗口推到舞台边上。")
+                                .font(SottoFont.pixel(11))
+                                .foregroundStyle(Color.sottoSecondary)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 112)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-
-            TextEditor(text: $model.inputText)
-                .focused($isInputFocused)
-                .font(SottoFont.pixel(15))
-                .scrollContentBackground(.hidden)
-                .foregroundStyle(Color.sottoPrimary)
-                .padding(16)
-                .frame(height: model.inputText.isEmpty && !isInputFocused ? 0 : 118)
-                .opacity(model.inputText.isEmpty && !isInputFocused ? 0 : 1)
-                .background(Color.black.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-            capabilityRow
-
-            SottoRhythmLine(amplitude: 0.76, opacity: 0.34)
-                .frame(height: 28)
-                .padding(.horizontal, 20)
-                .padding(.top, 2)
-
-            Button {
-                confirmStageEntrance()
-            } label: {
-                HStack(spacing: 14) {
-                    DotField(spacing: 5, dotSize: 1.7, opacity: stageHovering ? 0.58 : 0.42, drift: stageHovering ? 1.1 : 0.55)
-                        .frame(width: 42, height: 28)
-                    VStack(spacing: 2) {
-                        Text("ON STAGE")
-                            .font(SottoFont.pixel(18))
-                            .tracking(2)
-                        Text("准备上场")
-                            .font(SottoFont.pixel(11))
-                            .tracking(4)
+            .contentShape(Rectangle())
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                for provider in providers {
+                    provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                        guard let data = item as? Data,
+                              let url = URL(dataRepresentation: data, relativeTo: nil)
+                        else { return }
+                        DispatchQueue.main.async {
+                            handleFileURLs([url])
+                        }
                     }
-                    DotField(spacing: 5, dotSize: 1.7, opacity: stageHovering ? 0.58 : 0.42, drift: stageHovering ? 1.1 : 0.55)
-                        .frame(width: 42, height: 28)
                 }
-                .foregroundStyle(Color.sottoPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                return true
+            }
+            .onTapGesture { }
+
+            Group {
+                capabilityRow
+
+                SottoAmbientMotionField(intensity: stageHovering ? 0.92 : 0.64, animated: !reduceMotion)
+                    .frame(height: 28)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 2)
+
+                Button {
+                    confirmStageEntrance()
+                } label: {
+                    HStack(spacing: 14) {
+                        DotField(spacing: 5, dotSize: 1.7, opacity: stageHovering ? 0.58 : 0.42, drift: stageHovering ? 1.1 : 0.55)
+                            .frame(width: 42, height: 28)
+                        VStack(spacing: 2) {
+                            Text("ON STAGE")
+                                .font(SottoFont.pixel(18))
+                                .tracking(2)
+                            Text("准备上场")
+                                .font(SottoFont.pixel(11))
+                                .tracking(4)
+                        }
+                        DotField(spacing: 5, dotSize: 1.7, opacity: stageHovering ? 0.58 : 0.42, drift: stageHovering ? 1.1 : 0.55)
+                            .frame(width: 42, height: 28)
+                    }
+                    .foregroundStyle(Color.sottoPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .fill(Color.sottoGlow.opacity(0.09))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.sottoPrimary.opacity(stageHovering ? 0.54 : 0.34), lineWidth: 1)
+                    )
+                    .shadow(color: Color.sottoGlow.opacity(stageHovering ? 0.38 : 0.26), radius: stageHovering ? 20 : 16)
+                }
                 .background(
                     Capsule()
-                        .fill(Color.sottoGlow.opacity(0.09))
+                        .fill(Color.white.opacity(stageHovering ? 0.08 : 0))
+                        .blur(radius: 16)
+                        .scaleEffect(stageHovering ? 1.10 : 0.96)
                 )
-                .overlay(
-                    Capsule()
-                        .stroke(Color.sottoPrimary.opacity(stageHovering ? 0.54 : 0.34), lineWidth: 1)
-                )
-                .shadow(color: Color.sottoGlow.opacity(stageHovering ? 0.38 : 0.26), radius: stageHovering ? 20 : 16)
+                .overlay(SottoConfirmationSpark(isActive: stageSparking, radius: 20))
+                .buttonStyle(.plain)
+                .scaleEffect(stageHovering ? 1.025 : 1)
+                .animation(SottoMotionTokens.hover, value: stageHovering)
+                .onHover { stageHovering = $0 }
+                .disabled(textIsEmpty)
+                .opacity(isEditorExpanded ? 0.55 : (textIsEmpty ? 0.45 : 1))
+                .padding(.top, 4)
             }
-            .overlay(SottoConfirmationSpark(isActive: stageSparking, radius: 20))
-            .buttonStyle(.plain)
-            .scaleEffect(stageHovering ? 1.025 : 1)
-            .animation(SottoMotionTokens.hover, value: stageHovering)
-            .onHover { stageHovering = $0 }
-            .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .opacity(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
-            .padding(.top, 4)
+            .blur(radius: isEditorExpanded ? 8 : 0)
         }
         .frame(maxWidth: .infinity)
         .sottoEditorPanel(cornerRadius: 18)
@@ -160,9 +310,9 @@ struct HomeView: View {
     private var capabilityRow: some View {
         HStack(spacing: 12) {
             CapabilityItem(icon: "square.grid.3x3", title: "段落识别")
-            CapabilityItem(icon: "scissors", title: "短语切分")
-            CapabilityItem(icon: "rectangle.split.3x1", title: "停顿建议")
-            CapabilityItem(icon: "sun.max", title: "聚光预览")
+            CapabilityItem(icon: "scissors", title: "句子拆合")
+            CapabilityItem(icon: "waveform", title: "跟声试验")
+            CapabilityItem(icon: "sun.max", title: "录屏提词")
         }
         .foregroundStyle(Color.sottoSecondary)
         .padding(.top, 2)
@@ -177,6 +327,29 @@ struct HomeView: View {
                     .font(SottoFont.pixel(16))
                     .foregroundStyle(Color.sottoPrimary)
                 Spacer()
+                Button {
+                    model.openDocumentManager()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "tray.full")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("管理全部")
+                            .font(SottoFont.pixel(11))
+                    }
+                    .foregroundStyle(Color.sottoSecondary)
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(Color.white.opacity(0.040))
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(Color.sottoPrimary.opacity(0.10), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .scaleEffect(hoverManageDocs ? 1.10 : 1.0)
+                .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverManageDocs)
+                .onHover { hoverManageDocs = $0 }
             }
 
             VStack(spacing: 0) {
@@ -187,7 +360,7 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 22)
                 } else {
-                    ForEach(Array(model.recentDocuments.prefix(1).enumerated()), id: \.element.id) { index, document in
+                    ForEach(Array(model.recentDocuments.prefix(3).enumerated()), id: \.element.id) { index, document in
                         RecentDocumentRow(document: document, index: index) {
                             model.open(document)
                         }
@@ -196,6 +369,9 @@ struct HomeView: View {
             }
             .sottoEditorPanel(cornerRadius: 18)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { tryDefocus() }
+        .simultaneousGesture(TapGesture().onEnded { tryDefocus() })
     }
 
     private func confirmStageEntrance() {
@@ -212,6 +388,44 @@ struct HomeView: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
             stageSparking = false
+        }
+    }
+
+    private func handleFileURLs(_ urls: [URL]) {
+        var newText = model.inputText
+        for url in urls {
+            do {
+                let extracted = try FileTextExtractor.extractText(from: url)
+                if !newText.isEmpty, !newText.hasSuffix("\n") {
+                    newText += "\n"
+                }
+                newText += extracted
+                if !newText.hasSuffix("\n") {
+                    newText += "\n"
+                }
+            } catch {
+                model.showError("\(url.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+        model.inputText = newText
+        if !newText.isEmpty {
+            isInputFocused = true
+        }
+    }
+
+    private func openFilePicker() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "md"),
+            UTType(filenameExtension: "txt"),
+            UTType(filenameExtension: "doc"),
+            UTType(filenameExtension: "docx"),
+        ].compactMap { $0 }
+        panel.allowsMultipleSelection = true
+        panel.message = "选择文稿文件（.md / .txt / .doc / .docx）"
+        panel.begin { response in
+            guard response == .OK else { return }
+            handleFileURLs(panel.urls)
         }
     }
 }
@@ -234,6 +448,9 @@ private struct RecentDocumentRow: View {
     let document: PromptDocument
     let index: Int
     let action: () -> Void
+    @EnvironmentObject private var model: AppModel
+    @State private var menuOpen = false
+    @State private var isHovering = false
 
     private var initials: String {
         let letters = ["T", "N", "C"]
@@ -241,43 +458,132 @@ private struct RecentDocumentRow: View {
     }
 
     private var status: (String, Color) {
-        switch index % 3 {
-        case 0: ("待持续", .yellow)
-        case 1: ("已切分", .cyan)
-        default: ("润词中", .green)
-        }
+        document.isArchived ? ("已归档", Color.sottoMuted) : ("可上场", .sottoGreen)
     }
 
     var body: some View {
-        Button(action: action) {
+        ZStack(alignment: .topTrailing) {
             HStack(spacing: 16) {
-                PixelText(text: initials, size: 24, color: index == 2 ? .sottoGreen : .sottoPrimary, dot: 1.8, spacing: 4)
-                    .frame(width: 38, height: 42)
+                Button(action: action) {
+                    HStack(spacing: 16) {
+                        PixelText(text: initials, size: 24, color: .sottoPrimary, dot: 1.8, spacing: 4)
+                            .frame(width: 38, height: 42)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(document.title)
-                        .font(SottoFont.pixel(15))
-                        .foregroundStyle(Color.sottoPrimary)
-                        .lineLimit(1)
-                    Text("最后编辑  \(document.updatedAt.formatted(date: .omitted, time: .shortened))")
-                        .font(SottoFont.pixel(11))
-                        .foregroundStyle(Color.sottoMuted)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(document.title)
+                                .font(SottoFont.pixel(15))
+                                .foregroundStyle(Color.sottoPrimary)
+                                .lineLimit(1)
+                            Text("最后编辑  \(document.updatedAt.formatted(date: .omitted, time: .shortened))")
+                                .font(SottoFont.pixel(11))
+                                .foregroundStyle(Color.sottoMuted)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 8) {
+                            Circle().fill(status.1).frame(width: 8, height: 8)
+                            Text(status.0)
+                                .font(SottoFont.pixel(12))
+                        }
+                        .foregroundStyle(status.1)
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .scaleEffect(isHovering ? 1.02 : 1.0)
+                .animation(.spring(response: 0.28, dampingFraction: 0.70), value: isHovering)
+                .onHover { isHovering = $0 }
 
-                Spacer()
-
-                HStack(spacing: 8) {
-                    Circle().fill(status.1).frame(width: 8, height: 8)
-                    Text(status.0)
-                        .font(SottoFont.pixel(12))
+                Button {
+                    menuOpen.toggle()
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(SottoFont.pixel(16))
+                        .foregroundStyle(Color.sottoSecondary)
+                        .frame(width: 32, height: 32)
+                        .background(Color.white.opacity(menuOpen ? 0.08 : 0.025))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                .foregroundStyle(status.1)
-
-                Image(systemName: "ellipsis")
-                    .foregroundStyle(Color.sottoSecondary)
+                .buttonStyle(.plain)
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
+
+            if menuOpen {
+                RecentDocumentStackMenu(
+                    open: {
+                        menuOpen = false
+                        action()
+                    },
+                    copyToInput: {
+                        menuOpen = false
+                        model.copyRecentDocumentToInput(document)
+                    },
+                    remove: {
+                        menuOpen = false
+                        model.removeRecentDocument(document)
+                    }
+                )
+                .offset(x: -4, y: 44)
+                .transition(.opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.94, anchor: .topTrailing)))
+                .zIndex(5)
+            }
+        }
+        .animation(.spring(response: 0.30, dampingFraction: 0.78), value: menuOpen)
+    }
+}
+
+private struct RecentDocumentStackMenu: View {
+    let open: () -> Void
+    let copyToInput: () -> Void
+    let remove: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.sottoGlow.opacity(0.11))
+                .frame(width: 154, height: 96)
+                .offset(x: -10, y: 12)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.sottoPrimary.opacity(0.045))
+                .frame(width: 162, height: 104)
+                .offset(x: -5, y: 6)
+
+            VStack(spacing: 4) {
+                menuButton("打开", systemName: "arrow.up.right", action: open)
+                menuButton("放回入口", systemName: "text.append", action: copyToInput)
+                menuButton("移除", systemName: "xmark", action: remove, color: .sottoRed)
+            }
+            .padding(8)
+            .frame(width: 170)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(red: 0.060, green: 0.056, blue: 0.050).opacity(0.97))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.sottoPrimary.opacity(0.16), lineWidth: 1)
+            )
+            .shadow(color: Color.sottoGlow.opacity(0.18), radius: 18, y: 8)
+        }
+    }
+
+    private func menuButton(_ title: String, systemName: String, action: @escaping () -> Void, color: Color = .sottoPrimary) -> some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Image(systemName: systemName)
+                    .font(SottoFont.pixel(11))
+                    .frame(width: 16)
+                Text(title)
+                    .font(SottoFont.pixel(12))
+                Spacer()
+            }
+            .foregroundStyle(color.opacity(0.90))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .background(Color.white.opacity(0.035))
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
     }

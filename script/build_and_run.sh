@@ -45,6 +45,8 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$MIN_SYSTEM_VERSION</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Sotto uses microphone input to show a live voice-level waveform while prompting.</string>
 </dict>
 </plist>
 PLIST

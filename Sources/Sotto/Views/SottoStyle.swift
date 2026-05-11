@@ -8,6 +8,7 @@ extension Color {
     static let sottoMuted = Color(red: 0.43, green: 0.41, blue: 0.36)
     static let sottoGlow = Color(red: 0.94, green: 0.86, blue: 0.62)
     static let sottoGreen = Color(red: 0.21, green: 0.95, blue: 0.64)
+    static let sottoRed = Color(red: 1.0, green: 0.24, blue: 0.20)
 }
 
 enum SottoPanelRole {
@@ -57,7 +58,7 @@ struct SottoStageBackground: View {
 
             VStack {
                 Spacer()
-                SottoRhythmLine(amplitude: 0.55, opacity: 0.20 * intensity, animated: !reduceMotion)
+                SottoAmbientMotionField(intensity: 0.46 * intensity, animated: !reduceMotion)
                     .frame(height: 120)
                     .blur(radius: 0.6)
                     .padding(.horizontal, 60)
@@ -265,6 +266,7 @@ struct SottoGlassPanel<Content: View>: View {
                 RoundedRectangle(cornerRadius: role.cornerRadius, style: .continuous)
                     .stroke(Color.sottoPrimary.opacity(0.22), lineWidth: 1)
             )
+            .clipShape(RoundedRectangle(cornerRadius: role.cornerRadius, style: .continuous))
             .shadow(color: Color.sottoGlow.opacity(role.glow), radius: role == .prompt ? 28 : 18)
             .shadow(color: .black.opacity(0.35), radius: 24, y: 14)
     }
@@ -394,6 +396,123 @@ struct SottoRhythmLine: View {
     }
 }
 
+struct SottoAmbientMotionField: View {
+    var intensity: Double = 1
+    var animated = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if animated && !reduceMotion {
+                TimelineView(.animation) { timeline in
+                    ambientCanvas(time: timeline.date.timeIntervalSinceReferenceDate)
+                }
+            } else {
+                ambientCanvas(time: 0)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func ambientCanvas(time: TimeInterval) -> some View {
+        Canvas { context, size in
+            for index in 0..<28 {
+                let seed = Double(index)
+                let baseX = CGFloat((sin(seed * 12.989) * 43758.5453).truncatingRemainder(dividingBy: 1)).magnitude
+                let baseY = CGFloat((sin(seed * 78.233) * 19341.731).truncatingRemainder(dividingBy: 1)).magnitude
+                let driftX = CGFloat(sin(time * 0.15 + seed * 1.7) * 14)
+                let driftY = CGFloat(cos(time * 0.12 + seed * 1.1) * 7)
+                let x = baseX * size.width + driftX
+                let y = baseY * size.height + driftY
+                let length = CGFloat(10 + (index % 5) * 7)
+                let height = CGFloat(1 + (index % 3))
+                let pulse = 0.54 + 0.46 * sin(time * 0.42 + seed * 0.71)
+                let alpha = intensity * (0.045 + 0.055 * pulse)
+                let rect = CGRect(x: x, y: y, width: length, height: height)
+                context.fill(
+                    Path(roundedRect: rect, cornerRadius: height / 2),
+                    with: .color(.sottoPrimary.opacity(alpha))
+                )
+            }
+
+            for index in 0..<18 {
+                let seed = Double(index + 31)
+                let x = CGFloat((sin(seed * 91.17) * 6712.131).truncatingRemainder(dividingBy: 1)).magnitude * size.width
+                let y = CGFloat((sin(seed * 27.41) * 3381.917).truncatingRemainder(dividingBy: 1)).magnitude * size.height
+                let pulse = 0.52 + 0.48 * sin(time * 0.34 + seed)
+                let dot = CGFloat(1.4 + Double(index % 3) * 0.8)
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x, y: y, width: dot, height: dot)),
+                    with: .color(.sottoGlow.opacity(intensity * (0.08 + 0.08 * pulse)))
+                )
+            }
+        }
+    }
+}
+
+struct SottoVoiceWaveform: View {
+    var level: Double
+    var isListening: Bool
+    var opacity: Double = 0.42
+    var barCount = 44
+    var animated = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if animated && !reduceMotion {
+                TimelineView(.animation) { timeline in
+                    waveformCanvas(time: timeline.date.timeIntervalSinceReferenceDate)
+                }
+            } else {
+                waveformCanvas(time: 0)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func waveformCanvas(time: TimeInterval) -> some View {
+        Canvas { context, size in
+            let midX = size.width / 2
+            let midY = size.height / 2
+            let halfCount = max(barCount / 2, 1)
+            let step = max(size.width / CGFloat(barCount), 4)
+            let liveLevel = isListening ? max(min(level, 1), 0.045) : 0.035
+
+            var baseline = Path()
+            baseline.move(to: CGPoint(x: 0, y: midY))
+            baseline.addLine(to: CGPoint(x: size.width, y: midY))
+            context.stroke(baseline, with: .color(.sottoPrimary.opacity(opacity * 0.18)), lineWidth: 1)
+
+            for index in 0..<halfCount {
+                let distance = Double(index) / Double(max(halfCount - 1, 1))
+                let envelope = 1.0 - pow(distance, 1.42) * 0.72
+                let voice = liveLevel * (0.66 + 0.34 * sin(Double(index) * 0.73 + time * 3.2))
+                let idle = isListening ? 0 : 0.035 * sin(Double(index) * 0.82 + time * 0.7)
+                let height = CGFloat(4 + max(voice + idle, 0) * Double(size.height) * 0.92 * envelope)
+                let width = CGFloat(index % 4 == 0 ? 2.2 : 1.4)
+                let alpha = opacity * (0.34 + liveLevel * 0.88) * (0.76 + envelope * 0.24)
+
+                for side in [-1.0, 1.0] {
+                    let x = midX + CGFloat(side) * (CGFloat(index) * step + 3)
+                    let rect = CGRect(x: x - width / 2, y: midY - height / 2, width: width, height: height)
+                    context.fill(
+                        Path(roundedRect: rect, cornerRadius: width),
+                        with: .color(.sottoPrimary.opacity(alpha))
+                    )
+                }
+            }
+
+            let coreWidth = CGFloat(22 + liveLevel * 44)
+            let coreRect = CGRect(x: midX - coreWidth / 2, y: midY - 1.5, width: coreWidth, height: 3)
+            context.fill(
+                Path(roundedRect: coreRect, cornerRadius: 2),
+                with: .color(.sottoGlow.opacity(opacity * (0.26 + liveLevel * 0.56)))
+            )
+        }
+    }
+}
+
 struct SottoIconButton: View {
     let systemName: String
     var title: String?
@@ -481,18 +600,28 @@ extension View {
         }
     }
 
-    func sottoEditorPanel(cornerRadius: CGFloat = 18) -> some View {
+    func sottoEditorPanel(
+        cornerRadius: CGFloat = 18,
+        fillOpacity: Double = 0.72,
+        borderOpacity: Double = 0.08,
+        glowOpacity: Double = 0
+    ) -> some View {
         self
             .padding(12)
             .background(
                 ZStack {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color(red: 0.055, green: 0.052, blue: 0.046).opacity(0.72))
+                        .fill(Color(red: 0.055, green: 0.052, blue: 0.046).opacity(fillOpacity))
                     DotField(spacing: 15, dotSize: 0.95, opacity: 0.07, drift: 0.35)
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 }
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.sottoPrimary.opacity(borderOpacity), lineWidth: 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: Color.sottoGlow.opacity(glowOpacity), radius: 20, y: 6)
             .shadow(color: .black.opacity(0.34), radius: 18, y: 12)
     }
 

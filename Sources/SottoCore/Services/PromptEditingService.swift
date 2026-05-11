@@ -17,9 +17,7 @@ public enum PromptEditingService {
     public static func rebuildPhrases(for sentence: SentenceSegment, timing: TimingProfile) -> [PhraseSegment] {
         let sortedOffsets = sentence.manualSplitOffsets.sorted()
         guard !sortedOffsets.isEmpty else {
-            var phrase = PhraseSegment(text: sentence.text)
-            phrase.estimatedDuration = timing.duration(for: phrase)
-            return [phrase]
+            return phrases(for: sentence.text, timing: timing)
         }
 
         var phrases: [PhraseSegment] = []
@@ -42,5 +40,63 @@ public enum PromptEditingService {
         }
 
         return phrases
+    }
+
+    public static func splitSentence(_ sentence: SentenceSegment, at characterOffset: Int, timing: TimingProfile) -> [SentenceSegment]? {
+        guard characterOffset > 0, characterOffset < sentence.text.count else { return nil }
+        let splitIndex = sentence.text.index(sentence.text.startIndex, offsetBy: characterOffset)
+        let firstText = String(sentence.text[..<splitIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let secondText = String(sentence.text[splitIndex...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !firstText.isEmpty, !secondText.isEmpty else { return nil }
+
+        return [
+            sentenceWithText(firstText, pause: sentence.pause, emphasis: sentence.emphasis, timing: timing),
+            sentenceWithText(secondText, pause: .normal, emphasis: .normal, timing: timing)
+        ]
+    }
+
+    public static func mergeSentences(_ first: SentenceSegment, _ second: SentenceSegment, timing: TimingProfile) -> SentenceSegment {
+        sentenceWithText(
+            first.text + second.text,
+            pause: first.pause,
+            emphasis: first.emphasis,
+            timing: timing
+        )
+    }
+
+    public static func updateSentenceText(_ sentence: SentenceSegment, text: String, timing: TimingProfile) -> SentenceSegment? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var updated = sentence
+        updated.text = trimmed
+        updated.manualSplitOffsets = []
+        updated.phrases = phrases(for: trimmed, timing: timing)
+        return updated
+    }
+
+    public static func rawText(from sentences: [SentenceSegment]) -> String {
+        sentences.map(\.text).joined(separator: "\n")
+    }
+
+    private static func sentenceWithText(
+        _ text: String,
+        pause: PauseLevel,
+        emphasis: EmphasisLevel,
+        timing: TimingProfile
+    ) -> SentenceSegment {
+        SentenceSegment(
+            text: text,
+            phrases: phrases(for: text, timing: timing),
+            pause: pause,
+            emphasis: emphasis
+        )
+    }
+
+    private static func phrases(for text: String, timing: TimingProfile) -> [PhraseSegment] {
+        SegmentationService().splitPhrases(text).map { phraseText in
+            var phrase = PhraseSegment(text: phraseText)
+            phrase.estimatedDuration = timing.duration(for: phrase)
+            return phrase
+        }
     }
 }

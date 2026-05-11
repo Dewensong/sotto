@@ -15,16 +15,17 @@ struct EditorView: View {
                         .frame(width: 430)
                         .frame(maxHeight: .infinity)
 
-                    VStack(spacing: 14) {
+                    VStack(spacing: 18) {
                         SegmentPanelView()
-                            .frame(height: 252)
+                            .frame(height: 300)
+                            .clipped()
 
                         SpotlightPreviewView()
-                            .frame(height: 350)
+                            .frame(height: 342)
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .frame(height: 616)
+                .frame(height: 660)
             }
 
             if model.showRhythmReadyAnnouncement {
@@ -40,6 +41,7 @@ struct EditorView: View {
             scheduleAnnouncementDismissal(visible)
         }
         .onAppear {
+            model.startVoiceMonitoring()
             scheduleAnnouncementDismissal(model.showRhythmReadyAnnouncement)
         }
         .animation(.easeOut(duration: SottoMotionTokens.duration(0.32, reduceMotion: reduceMotion)), value: model.showRhythmReadyAnnouncement)
@@ -79,22 +81,36 @@ struct EditorView: View {
             Spacer()
 
             Button {
+                model.showSettingsPanel.toggle()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(SottoFont.pixel(15))
+                    .frame(width: 38, height: 38)
+                    .foregroundStyle(Color.sottoSecondary)
+                    .background(Color.white.opacity(0.035))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 model.openTeleprompter()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image(systemName: "play.rectangle.fill")
                         .font(SottoFont.pixel(15))
-                    Text("提词")
+                    Text("开始提词")
                         .font(SottoFont.pixel(13))
+                        .tracking(1.4)
                 }
-                .frame(width: 78, height: 32)
+                .frame(width: 118, height: 38)
                 .foregroundStyle(Color.sottoPrimary)
-                .background(Color.sottoPrimary.opacity(0.09))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(Color.sottoGlow.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.sottoPrimary.opacity(0.16), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.sottoPrimary.opacity(0.28), lineWidth: 1)
                 )
+                .shadow(color: Color.sottoGlow.opacity(0.18), radius: 14, y: 5)
             }
             .buttonStyle(.plain)
         }
@@ -104,7 +120,7 @@ struct EditorView: View {
     private var recognizedSentences: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("已识别句子", systemImage: "text.alignleft")
+                Label("稿件看板", systemImage: "text.alignleft")
                     .font(SottoFont.pixel(16))
                     .foregroundStyle(Color.sottoPrimary)
                 Spacer()
@@ -138,7 +154,7 @@ struct EditorView: View {
                     .foregroundStyle(Color.sottoMuted)
             }
         }
-        .sottoEditorPanel(cornerRadius: 16)
+        .sottoEditorPanel(cornerRadius: 16, fillOpacity: 0.70, borderOpacity: 0.10)
     }
 
     private func recognizedSentenceRow(_ sentence: SentenceSegment, index: Int) -> some View {
@@ -156,11 +172,17 @@ struct EditorView: View {
                 .foregroundStyle(selected ? Color.sottoPrimary : Color.sottoSecondary.opacity(0.78))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Circle()
-                .fill(selected ? Color.sottoPrimary : Color.sottoMuted.opacity(0.36))
-                .frame(width: selected ? 9 : 6, height: selected ? 9 : 6)
-                .padding(.top, 6)
-                .shadow(color: Color.sottoGlow.opacity(selected ? 0.6 : 0), radius: 10)
+            VStack(alignment: .trailing, spacing: 7) {
+                Circle()
+                    .fill(selected ? Color.sottoPrimary : Color.sottoMuted.opacity(0.36))
+                    .frame(width: selected ? 9 : 6, height: selected ? 9 : 6)
+                    .shadow(color: Color.sottoGlow.opacity(selected ? 0.6 : 0), radius: 10)
+
+                Text("\(sentence.phrases.count) 段")
+                    .font(SottoFont.pixel(10))
+                    .foregroundStyle(selected ? Color.sottoPrimary.opacity(0.76) : Color.sottoMuted.opacity(0.62))
+            }
+            .padding(.top, 4)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

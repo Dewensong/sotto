@@ -38,7 +38,7 @@ public final class PromptDocumentStore {
         }
 
         documents.sort { $0.updatedAt > $1.updatedAt }
-        let data = try encoder.encode(Array(documents.prefix(12)))
+        let data = try encoder.encode(documents)
         try data.write(to: fileURL, options: .atomic)
     }
 
@@ -47,5 +47,12 @@ public final class PromptDocumentStore {
         let data = try Data(contentsOf: fileURL)
         let documents = try decoder.decode([PromptDocument].self, from: data)
         return documents.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    public func remove(id: PromptDocument.ID) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let documents = try loadRecentDocuments().filter { $0.id != id }
+        let data = try encoder.encode(documents)
+        try data.write(to: fileURL, options: .atomic)
     }
 }

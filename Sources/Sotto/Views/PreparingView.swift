@@ -3,6 +3,7 @@ import SwiftUI
 struct PreparingView: View {
     @State private var visibleSteps = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject private var model: AppModel
 
     private let steps = [
         ("1", "识别段落", "智能识别段落结构与语义边界"),
@@ -86,10 +87,16 @@ struct PreparingView: View {
             }
             Spacer()
             SottoStatusBadge(title: "PREP", color: .sottoPrimary)
-            Image(systemName: "gearshape")
-                .font(SottoFont.pixel(26))
-                .foregroundStyle(Color.sottoSecondary)
-                .padding(.leading, 14)
+            Button {
+                model.showSettingsPanel.toggle()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(SottoFont.pixel(26))
+                    .foregroundStyle(Color.sottoSecondary)
+                    .frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, 14)
         }
     }
 
