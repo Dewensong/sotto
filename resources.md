@@ -19,6 +19,8 @@
 - [Free Chinese Font - Pixel](https://www.freechinesefont.com/category/pixel/)：中文像素字体索引，后续可继续寻找更接近参考图标题气质的替代字体。
 
 ## 素材与数据
+- `artifacts/reference-repos/textream/`：Textream 开源 macOS 提词器源码本地参考归档；当前 commit `6c34baaef9fea5de30bce619b4ed34cd675d5617`，tag `v1.5.2`，README 声明 MIT；用于研究逐字语音追踪、语音激活滚动、窗口层、外接屏和远程控制机制，不作为 Sotto 主源码的一部分提交。
+- `work/textream-reference-analysis-2026-05-09.md`：Textream 参考分析，记录功能地图、技术架构、逐字追踪机制、窗口/显示机制、远程控制机制和 Sotto 可吸收路线。
 - `artifacts/raw/reference-videos/douyin-mmguo-ai-radio-vibe-coding-reference-2026-05-02.mp4`：抖音 AI 电台 vibe coding 参考视频，用于分析产品思想与 UI 设计语言。
 - `artifacts/reference-screenshots/`：从参考视频抽取的关键截图，用于后续 UI/交互讨论。
 - Unicorn Studio 场景 `xbdYsuMp0mSR01MXofEj`：Sotto 首页 / 准备中状态的外部 WebGL 背景候选；使用时需懒加载、控制 `scale` / `dpi` / `fps`，并提供静态降级背景。

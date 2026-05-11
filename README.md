@@ -1,60 +1,181 @@
-# vibe-coding-teleprompter
+# Sotto
 
-## 一句话说明
-面向 vibe coding 和 AI 产品演示的 Mac 原生 AI 智能提词器：把零散材料整理成自然口播稿，并在演示时用精致、低打扰的提词层辅助表达。
+Personal macOS teleprompter for vibe coding demos.
 
-## 当前状态
-- 阶段：MVP 0.1 Mac 原生可运行版已实现
-- 最近更新时间：2026-05-06
-- 当前进展：已基于 SwiftPM + SwiftUI 搭建 Sotto Mac App，实现稿件粘贴、确定性切分、手动切分点、聚光流预览、本地最近稿件保存和 AppKit 提词浮窗；已按参考图方向重构为暗色点阵、暖白柔光和全局中文像素字体风格；首页收紧为更合适的竖向舞台比例，编辑页改为左侧长列句子列表、右侧上方紧凑调整面板、右侧下方提词预览的工作台，正式提词窗口保持横向较大展示；已审阅确认 MVP 0.1 设计规格，并把动效原则中的顶部聚光、点阵呼吸、状态点呼吸、准备中步骤浮现、切分点反馈、短语级柔光扫读、低频公告卡片、控制栏 hover 浮现、短字标信号漂移和阅读边缘保护补入实现。
-- 当前阻塞：暂无
+Sotto is a quiet backstage for speaking well while showing code, products, and AI workflows. Paste a prepared script, shape its rhythm sentence by sentence, and keep a low-distraction prompt window floating near your stage.
 
-## 下一步
-- [x] 补充 `context.md`
-- [x] 整理第一批资料到 `resources.md`
-- [x] 明确本阶段目标和验收标准
-- [x] 基于真实需求讨论收敛 MVP 0.1 范围
-- [x] 产出聚光流提词器 MVP 0.1 设计规格
-- [x] 审阅并确认 `docs/superpowers/specs/2026-05-02-spotlight-flow-teleprompter-mvp-design.md`
-- [x] 基于 MVP 0.1 规格实现第一版 Mac 原生可运行闭环
-- [x] 选择一段已有口播稿作为聚光流提词测试样本
-- [ ] 真实录屏场景试用 Sotto 提词浮窗，记录可读性、遮挡和节奏问题
-- [x] 根据真实试用结果调整提词窗口字号、位置、透明度和扫读节奏
-- [ ] 继续按参考图细化正式提词窗口位置预设、页面来源连续转场和真实录屏性能观察
+> 中文说明：Sotto 是一个为 vibe coding 和 AI 产品演示准备的 Mac 原生提词器。它优先服务 Dewens 自己的录屏、demo 和远程展示，也作为一个公开演进的 vibe coding 作品。
 
-## 项目索引
-- `AGENTS.md`：Codex / 通用 AI 协作规则
-- `CLAUDE.md`：Claude Code 协作规则
-- `context.md`：项目背景、目标、约束
-- `progress.md`：推进记录
-- `decisions.md`：关键决策
-- `resources.md`：云端资源、外部链接、素材索引
-- `docs/`：稳定文档
-- `work/`：推进中的草稿、实验、笔记
-- `artifacts/`：过程资产
-- `deliverables/`：阶段性交付物
-- `archive/`：旧版本、废弃方案、历史备份
+## Why I Built This
 
-## 当前关键文档
-- `docs/superpowers/plans/2026-05-03-sotto-mvp-0.1-macos-app.md`：MVP 0.1 Mac 原生可运行版实施计划
-- `docs/product-definition-v1.md`：产品定义 V1，包含定位、核心需求、MVP、UI 方向和验收标准
-- `docs/superpowers/specs/2026-05-02-spotlight-flow-teleprompter-mvp-design.md`：MVP 0.1 设计规格，聚焦 Mac 本机聚光流提词器
-- `docs/sotto-ui-design-baseline-v1.md`：Sotto UI 设计基准 V1，沉淀 5 张参考图中的统一视觉语言和实现原则
-- `docs/sotto-interaction-motion-principles-v1.md`：Sotto 交互与动效原则 V1，沉淀参考视频和 5 张 UI 图中的微交互、状态流转与生命感规则
-- `docs/page-descriptions-mvp-0.1-reference.md`：MVP 0.1 页面描述参考，用于后续视觉风格探索，可随时调整
-- `docs/homepage-reference-v1.md`：Sotto 首页参考 V1，记录已采纳的首页视觉方向和内容结构
-- `docs/prompt-window-reference-v1.md`：Sotto 正式提词窗口参考 V1，记录已采纳的聚光流提词窗口方向
-- `docs/script-editor-reference-v1.md`：Sotto 稿件编辑页参考 V1，记录已采纳的稿件准备台方向
-- `docs/segmentation-panel-reference-v1.md`：Sotto 短语切分 / 节奏调整面板参考 V1，记录已采纳的切分交互细节
-- `docs/preparing-state-reference-v1.md`：Sotto 自动切分处理中状态参考 V1，记录已采纳的准备上场等待状态
-- `work/reference-analysis.md`：Claudio / AI 电台参考视频分析
-- `artifacts/raw/reference-videos/`：原始参考视频
-- `artifacts/reference-screenshots/`：参考视频关键截图
+When recording a vibe coding session or an AI product demo, the hard part is not only building the thing. It is explaining the thinking while showing the thing.
 
-## 本地运行
-- `swift test`：运行 SottoCore 行为测试
-- `./script/build_and_run.sh --verify`：构建并启动 `dist/Sotto.app`，验证 Sotto 进程存在
-- Codex App 的 Run 按钮已通过 `.codex/environments/environment.toml` 指向 `./script/build_and_run.sh`
+Generic teleprompters feel too much like scrolling text boxes. Full AI director tools are too heavy for the first version. Sotto starts with the layer I need most: a calm, stage-like prompting experience for prepared scripts.
 
-## AI 协作提示
-开始前请先读取 `AGENTS.md`，再结合 `README.md`、`context.md`、`progress.md`、`decisions.md` 进入项目状态。
+It is designed to help me:
+
+- Speak clearly while showing code, products, and workflows.
+- Keep a script nearby without covering the real demo.
+- Shape rhythm before recording instead of improvising every sentence live.
+- Treat the tool itself as part of the vibe coding artifact.
+
+## Current Status
+
+Sotto is currently an MVP 0.1 build for personal use and public learning. The core prompting loop works locally, but this is not a polished product release yet.
+
+Recently verified locally:
+
+- `swift test` passed 43 tests.
+- `./script/build_and_run.sh --verify` built and launched `dist/Sotto.app`.
+
+Still being validated:
+
+- First-run microphone permission experience.
+- Voice activation threshold in real recordings.
+- Screen-sharing hide behavior with actual recording tools.
+- Long-script stability and performance.
+- Public screenshots, short demo media, and a final license decision.
+
+## What It Does
+
+### Script Preparation
+
+- Paste a prepared script.
+- Automatically split Chinese / English text into sentences and phrases.
+- Edit the current sentence directly.
+- Split one sentence into two, or merge it with the previous / next sentence.
+- Add pause and emphasis settings that affect prompting rhythm.
+- Save scripts into a local document library.
+
+### Prompting Experience
+
+- Open a floating AppKit prompt window above other Mac windows.
+- Use timed playback or voice-activated playback.
+- Read with a token-level cursor: Chinese advances by character, English / numbers advance by word.
+- Click a sentence to jump during rehearsal or recording.
+- Use the TUNE drawer to adjust speed, font size, opacity, width, and brightness.
+- Move between position presets and use keyboard shortcuts for common controls.
+
+### Recording Mode
+
+- Focus mode hides the main editor while the prompt window is open.
+- Optional screen-sharing hide behavior keeps the prompt window private in supported macOS capture paths.
+- A low-distraction dark stage UI keeps the script readable without turning into the subject of the recording.
+- Built-in Fusion Pixel Font resources keep the current visual style portable.
+
+## Screenshots
+
+Current public screenshots are still being prepared from the latest running build.
+
+The design direction is documented in:
+
+- [Sotto UI Design Baseline](docs/sotto-ui-design-baseline-v1.md)
+- [Homepage Reference](docs/homepage-reference-v1.md)
+- [Prompt Window Reference](docs/prompt-window-reference-v1.md)
+- [Script Editor Reference](docs/script-editor-reference-v1.md)
+
+## Run Locally
+
+Requirements:
+
+- macOS 15 or later
+- Swift 6 toolchain
+
+Run tests:
+
+```bash
+swift test
+```
+
+Build and launch the local app:
+
+```bash
+./script/build_and_run.sh --verify
+```
+
+The script builds the SwiftPM package, creates `dist/Sotto.app`, launches it, and verifies that the process is running.
+
+## Project Structure
+
+```text
+Sources/
+  Sotto/                 # SwiftUI app, AppKit prompt window, visual system
+  SottoCore/             # Models, segmentation, editing, storage, timing
+Tests/SottoTests/        # Behavior tests for core logic and app state
+script/                  # Build and run helpers
+docs/                    # Stable product, design, and implementation notes
+work/                    # In-progress research, reviews, and acceptance notes
+artifacts/               # Local reference assets; large/raw folders are ignored
+```
+
+## Roadmap
+
+### Before Public Demo
+
+- Record one real 3-5 minute vibe coding demo with Sotto.
+- Capture current screenshots and a short demo clip.
+- Improve microphone permission and fallback states.
+- Validate screen-sharing hide behavior with actual recording tools.
+- Add a public license file.
+
+### MVP 0.2 Candidates
+
+- Better long-script navigation.
+- Adjustable voice activation threshold.
+- Readable font mode for long-form scripts.
+- Script import / export.
+- External display or viewer mode.
+
+### Later Ideas
+
+- AI-assisted script rewriting.
+- Demo outline to speaking script.
+- Speech recognition based follow-along.
+- Browser or remote companion view.
+
+## Known Limitations
+
+- Voice-activated playback is volume-gated, not full speech recognition.
+- Screen-sharing hiding depends on macOS window behavior and must be validated with the specific recording / meeting tool.
+- Sotto is built for my workflow first; general-purpose teleprompter polish is not the immediate goal.
+- There is no signed release package yet.
+- Public demo screenshots and video are still pending.
+
+## Design Notes
+
+Sotto's visual direction is a dark, quiet backstage rather than a productivity dashboard. It uses warm stage light, subtle dot patterns, pixel-styled labels, and a floating prompt window to make speaking feel prepared without making the tool loud.
+
+Key design references and decisions:
+
+- [Product Definition V1](docs/product-definition-v1.md)
+- [Sotto Interaction and Motion Principles](docs/sotto-interaction-motion-principles-v1.md)
+- [MVP 0.1 Design Spec](docs/superpowers/specs/2026-05-02-spotlight-flow-teleprompter-mvp-design.md)
+- [GitHub Public README Plan](docs/github-public-readme-plan-2026-05-10.md)
+
+## Public Release Notes
+
+The current public release track is documented in:
+
+- [Self-use Acceptance Plan](work/self-use-acceptance-2026-05-10.md)
+- [Public Release Readiness Review](work/public-release-readiness-review-2026-05-10.md)
+
+This repository is intended to show both the app and the process: product judgment, visual exploration, real-use feedback, and implementation tradeoffs.
+
+## Credits and References
+
+- [Fusion Pixel Font](https://github.com/TakWolf/fusion-pixel-font): bundled font resource under the SIL Open Font License. See [FusionPixelFont-OFL.txt](Sources/Sotto/Resources/Fonts/FusionPixelFont-OFL.txt).
+- [Textream](https://github.com/f/textream): studied as an open-source macOS teleprompter reference for mechanisms such as voice-triggered prompting and screen-sharing behavior. Sotto does not copy Textream UI or include its source as part of this app.
+- Visual and interaction references are documented in [resources.md](resources.md). Raw reference videos and external repository archives are intentionally not part of the public source tree.
+
+## License
+
+License decision is still pending before public release. The bundled Fusion Pixel Font keeps its original OFL license.
+
+## For Future Collaborators
+
+This project follows the local AI collaboration notes in [AGENTS.md](AGENTS.md). For current state, read:
+
+- [context.md](context.md)
+- [progress.md](progress.md)
+- [decisions.md](decisions.md)
+- [resources.md](resources.md)

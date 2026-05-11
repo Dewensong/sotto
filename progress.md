@@ -1,5 +1,97 @@
 # 推进记录
 
+## 2026-05-11（续二）
+
+- **修复跟声模式不跟声**：三个根因叠加——归一化公式 `(dB + 58) / 42` 把正常说话映射到 0.43-0.90 但阈值滑杆范围只覆盖 0.01-0.12（全是底噪区）；EMA 平滑 `0.72*old + 0.28*new` 延迟约 80-100ms；无迟滞导致单次静音 buffer 就冻结播放。修复：归一化改为 `(dB + 60) / 50` 拉宽动态范围；EMA 改为 `0.45*old + 0.55*new` 加快响应；`shouldAdvancePlayback` 增加迟滞（需连续 4 帧低于阈值才暂停）；滑杆范围改为 `0.08...0.50`，默认阈值改为 `0.12`；更新测试适配迟滞逻辑。
+- **新增光标模式三选一**：`TokenCursorMode` 枚举（`.character` 逐字 / `.word` 逐词 / `.line` 逐行），默认逐字；`.word` 模式下当前短语所有 token 同时高亮；`.line` 模式跳过 token sweep 直接渲染整句；设置面板"阅读模式"下方新增"光标模式"三选一控件；`TeleprompterSettings` 新增 `cursorMode` 属性，`AppModel` 新增 `setCursorMode`。
+- **新增快捷键提示 + 重新开始**：`AppModel` 新增 `restartSession()` 回到第 0 句、停播、清零计时；`SottoApp` 新增 Cmd+Shift+R 菜单项；提词器左侧 sidebar 新增快捷键提示区（Space 播放/暂停、⇧⌘R 从头开始、⌘←→ 上下句、Esc 退出），以像素字体 keycap 样式展示。
+- **提升长稿导航**：每行左侧加句号；sidebar 的 `XX / YY` 进度文字改为可点击按钮，点击弹出 `SentencePickerView` popover（全部句子序号+首行文字列表，当前句高亮，点击跳转）；`SottoApp` 新增 Cmd+↑ 跳到开头、Cmd+↓ 跳到结尾快捷键。
+- **验证**：`swift build` 无警告，`swift test` 44 测试通过，已重新构建 `dist/Sotto.app`。
+
+## 2026-05-11（续）
+
+- **清理提词器窗口死代码**：删除 `PhraseSweepView`、`TokenCursorView`、`ReadingToken`、`PhraseGlow` 和无用的 `Character` 扩展，共 171 行。这些是旧版短语扫光/光标组件的残留，已完全被 `CurrentSentenceSweepView` + `SentenceSweepToken` 替代。
+- **提词器侧边栏计时替换为真实耗时**：移除硬编码的 "01:24"，改为基于 `tickPlayback` 累计的实际播放时长（`MM:SS` 格式），播放开始自动清零，暂停保持，返回首页/关闭提词器时重置。
+- **麦克风权限首次体验优化**：`AudioLevelMonitor` 新增 `permissionStatus` 发布属性，`AppModel` 订阅权限状态并暴露 `microphonePermissionDenied`；打开提词器或切换到跟声模式时若权限被拒绝，显示红色错误 toast 提示"麦克风权限未开启"；新增 `openMicrophoneSettings()` 可跳转系统设置；设置面板在跟声模式 + 权限拒绝时显示红色警告标签。
+- **确认屏幕共享隐藏已实现**：机制来自 Textream 的 `NSWindow.sharingType = .none`，已通过 `TeleprompterSettings.hidesFromScreenShare` → `TeleprompterWindowController.applyScreenSharingVisibility` 完整落地，设置面板"屏幕共享"切换可用，5 个测试覆盖。
+- **验证**：`swift build` 无警告，`swift test` 44 测试通过。
+- **修复提词器面板计时**：计时器从逐 tick 累加改为基于墙钟的实时计算——新增 `playbackSegmentStart` + `playbackPausedElapsed` 记录播放段起始和暂停时累计耗时，`refreshElapsedDisplay()` 每次 tick 按墙钟差值刷新 `playbackElapsedDisplay`；打开/关闭/返回首页时正确重置；删除已无用的 `playbackElapsedTime` 属性。
+- **修复逐字 token 光标卡顿**：移除 `CurrentSentenceSweepView` 和 `ScrollView` 上对 `progress` 值的 `.animation(.linear(duration: 0.08))` 动画——30fps tick 每次更新 progress 都会触发 80ms 动画，下一帧（33ms 后）新的 progress 值到达便中断上一次动画重新开始，造成持续"中断-重启"式的卡顿感。去掉 progress 动画后 token 状态切换瞬时完成，帧率级更新本身已足够平滑。
+- **修复提词器窗口无法拖动**：此前为修 TUNE 滑条拖动带动窗口，把 `isMovableByWindowBackground` 关掉，导致窗口完全失去拖动能力。改为保持 `false`，新增 `WindowDragHandle`（NSViewRepresentable + `performDrag(with:)`）作为顶部 36px 透明拖拽把手；TUNE 展开时自动禁用拖拽把手避免与滑条冲突。
+- **验证**：`swift build` 无警告，`swift test` 44 测试通过，已重新构建 `dist/Sotto.app`。
+
+## 2026-05-11
+
+- **修复稿件保存失败的根因**：`PromptDocument` 新增 `isArchived` 字段后，合成 `Decodable` 要求 JSON 中存在该 key；但本地已有 12 篇旧文档（`~/Library/Application Support/Sotto/recent-documents.json`，94KB）不含此字段，导致 `loadRecentDocuments()` 解码失败 → `store.save()` 整体抛出 → 保存静默失败，用户无任何反馈。修复：为 `PromptDocument` 添加自定义 `init(from:)`，对 `isArchived` 使用 `decodeIfPresent` 并缺省 `false`。
+- **修复所有错误静默失败问题**：`AppModel.errorMessage` 在 7 处被赋值但没有任何 view 读取，所有持久化错误对用户不可见。修复：移除 `errorMessage`，新增 `SottoToastMessage` 类型和 `triggerErrorToast` 方法，将 `loadRecentDocuments`、`saveCurrentDocument`、`removeRecentDocument`、`toggleArchive` 及 HomeView 文件解析的错误全部改为红色 toast 提示，3 秒后自动消失。
+- 验证：`swift build` 无警告，`swift test` 44 测试通过，经验证旧 JSON 文件 12 篇文档均缺 `isArchived` 字段——修复后解码正常。
+
+- **修复首页准备上场后稿件未存入全部稿件列表的问题**：`createDocumentFromInput()` 原先在延迟 Task 中通过 `saveCurrentDocument()` 间接保存，现改为在 Preparing 过渡动画前通过 `store.save()` 直接持久化并刷新列表；新增 `saveInputToLibrary()` 独立保存方法。
+- **新增首页输入区"一键保存到全部稿件"按钮**：在输入区工具栏（清空 / 展开 / 导入文件旁）增加 `tray.and.arrow.down` 保存按钮，点击后直接分段、生成标题并存入本地稿件库，无需进入编辑流程。
+- **新增保存成功提示 toast**：在 ContentView 层增加 `SottoSaveToast` 组件，以暖色胶囊 + 勾选图标 + 弹簧动效的形式提示"已保存到全部稿件"，2 秒后自动淡出；准备上场和手动保存两个路径都会触发提示。
+- 验证：`swift build` 无警告，`swift test` 44 个测试全部通过，`./script/build_and_run.sh --verify` 成功启动。
+- 根据 Dewens 对 TUNE 面板的反馈，修复滑条拖动会带动整个提词面板的问题：关闭 AppKit 提词窗口的 `isMovableByWindowBackground`，并在 TUNE 打开时禁用隐形 resize 命中层，避免控制面板手势被窗口拖拽 / 缩放抢走。
+- 将 TUNE 面板从 5 个无解释滑条重构为更适合现场理解的组合控件：速度改为慢 / 稳 / 快档位，字号和宽度改为步进按钮，透明度改为轻 / 柔 / 清档位，亮度保留单根滑条；每个参数补充中文含义说明。
+- 做了一轮公开前最小产品优化包：将首页主文案从内部准备口吻调整为更适合公开截图 / demo 开场的表达，能力标签从“短语切分 / 停顿建议”更新为更贴近当前实现的“句子拆合 / 跟声试验 / 录屏提词”。
+- 调整正式提词窗口默认参数为更接近真实录屏的展示状态：默认靠近镜头位置、窗口 900 × 520、字号 36、透明度 96%、亮度 104%、速度倍率 0.72x，并新增测试锁住默认值。
+- 在设置齿轮的阅读模式下增加轻量说明：定时模式作为最稳定默认排练路径，跟声模式明确是按音量推进、不是逐字识别，降低真实试用时的误解。
+- 基于 `docs/github-public-readme-plan-2026-05-10.md` 将 `README.md` 从内部进度入口改为 GitHub 公开版首页初稿：首屏改为英文 personal macOS teleprompter for vibe coding demos，保留中文说明、自用背景、功能分组、本地运行、Roadmap、Known limitations、设计参考、公开发布备注、Credits 和未来协作者入口。
+- 根据 Dewens 对 Sotto 下一阶段的定位补充，明确项目接下来同时服务两个目标：一是 Dewens 自用的 vibe coding / AI 产品演示提词工具，二是后续推到 GitHub 的公开 vibe coding 成果展示。
+- 新增 `work/self-use-acceptance-2026-05-10.md`，把下一轮真实使用验收整理为可执行流程，覆盖 3-5 分钟真实稿件、定时 / 跟声模式、屏幕共享隐藏、长稿稳定性、现场操控和录屏安全。
+- 新增 `work/public-release-readiness-review-2026-05-10.md`，完成公开仓库前第一轮审查：当前适合以 personal macOS teleprompter for vibe coding demos 的口径公开，但不应包装成成熟通用产品；README、截图 / 演示素材、License、Known limitations 和真实录屏验收仍需补齐。
+- 新增 `docs/github-public-readme-plan-2026-05-10.md`，整理公开版 README 的推荐叙事、首屏文案、Features 分组、Current Status、Roadmap、Known limitations、Credits 和截图清单。
+- 更新 `decisions.md`，记录公开路线采用“自用工具 + vibe coding 成果展示”的关键取舍。
+- 根据 Dewens 真实试用反馈，确认此前“短语切分”实际是句内短语节奏点，不符合“选择一句后拆成两句、两句合并为一句”的句子级编辑预期；本轮将右侧面板语义改为“句子编辑 / 拆合 / 节奏”。
+- 新增句子级编辑能力：当前句可直接在右侧 TextEditor 中修改，修改后自动更新 `PromptDocument.rawText`、当前提词 session 和最近稿件保存。
+- 新增句子拆分 / 合并能力：点击当前句字间光标可把一句拆成两句，并支持与上一句 / 下一句合并；拆合后会重建内部短语节奏、重置播放光标并保持文档自动保存。
+- 优化编辑页看板表达：左侧从“已识别句子”调整为“稿件看板”，每句显示序号、正文和内部段数；右侧面板显示自动保存状态、字数、拆句提示、合并按钮和节奏设置，降低原先“切分点”含义不清的问题。
+- 根据 Dewens 对右上面板截图的进一步标注，将“句子编辑 / 拆合 / 节奏”面板改为左右列：左侧负责当前句文案编辑和可展开的句子拆分设置，展开后才显示字间拆分光标、合并上句、合并下句；右侧独立承接停顿设置、强调设置和预计耗时，减少默认态信息密度。
+- 修复右上面板与下方提词预览反复重叠的问题：根因是固定高度面板内部内容继续增长，右侧节奏列的 `Spacer` 会把预计耗时推到面板底部并越界绘制；本轮移除该 `Spacer`，收紧当前句编辑框和拆分入口高度，将上方面板高度从 350 收到 300、上下间距从 22 收到 18，并给上方面板加 `clipped()` 作为越界防线。
+- 补齐稿件管理能力：首页“最近稿件”新增“管理全部”入口，进入独立 `DocumentManagerView`，可以查看全部本地稿件、打开稿件、放回首页输入区或删除稿件。
+- 调整本地存储语义：`PromptDocumentStore` 不再只保留最近 12 篇，而是保存全部稿件；首页仍只展示最近 3 篇，稿件管理页展示完整列表。
+- 用测试锁住稿件管理行为：覆盖稿件管理状态可进入 / 返回、首页粘贴进入准备上场后会自动把稿件保存到稿件库，以及本地库可以保留超过 12 篇稿件。
+- 优化正式提词窗口 resize 命中区：此前只有四角透明小热区，鼠标放到边缘或角落附近容易一晃而过；本轮将四角命中区扩大到 64 × 64，并新增顶部、底部、左侧、右侧 44px 连续透明拖拽带，支持从边缘和角落都能调整窗口大小。
+- 优化正式提词窗口文字宽度适配：参考 HTML/PPT 文案适配预检的“先估算文本宽度和行数预算”思路，新增 `PromptTextFitEstimator`，根据当前提词窗口宽度、请求字号、目标行数动态估算当前句字号；同时修正当前句 token 高亮的嵌套布局，改为单层 token FlowLayout，避免内层默认按约 300px 宽度排版导致窗口变宽后仍固定换行。
+- 修复正式提词窗口播放 / 暂停按钮点击不灵敏：根因是放大的底部 resize 透明拖拽带覆盖了底部控制栏，点击会被 resize 手势吃掉；本轮将底部拖拽带收窄到贴边 14px，并收窄左右边缘拖拽带，保留四角大热区但避免遮挡控制按钮。
+- 优化定时模式初始速度：新增 `TeleprompterSettings.speedMultiplier`，默认 `0.75x`，播放 tick 按 `elapsed * speedMultiplier / duration` 推进；TUNE 中的 SPD 从原来的三档 timing 选择改为 0.55x-1.65x 全局倍率滑杆，支持在基础节奏上整体加速或减速。
+- 优化提词进度光标：正式提词窗口当前短语从整体扫光改为 token 光标；中文按字推进，英文 / 数字按词推进，当前 token 有底线和柔光，过去 / 未来 token 用不同透明度区分。
+- 优化跟声模式灵敏度：将语音激活阈值从 `0.08` 降低到 `0.035`，保留静音暂停和有声推进测试覆盖，降低真实说话时“不跟声”的概率。
+- 新增测试覆盖句子拆分、无效切点、句子合并、当前句编辑自动保存、拆句后文档 / session 同步、合并后文档 / session 同步；验证结果：`swift test` 通过 35 个测试。
+
+## 2026-05-09
+- 根据 Dewens 找到的开源 Mac 提词器项目 Textream，下载源码到 `artifacts/reference-repos/textream/` 作为外部参考归档；已核对当前本地归档位于 `master` / `v1.5.2`，commit 为 `6c34baaef9fea5de30bce619b4ed34cd675d5617`。
+- 新增 `work/textream-reference-analysis-2026-05-09.md`，系统拆解 Textream 的逐字语音追踪、语音激活滚动、CJK token 切分、AppKit 窗口层、屏幕共享隐藏、外接屏 / Sidecar、浏览器远程同步和 Director 模式。
+- 明确本次只把 Textream 作为机制参考，不复制 Dynamic Island / Notch UI，也不直接迁入大段源码；Sotto 仍保持暗色点阵、聚光流、像素字体和 AI 演示导演气质。
+- 将后续可吸收能力排序为：语音激活播放、屏幕共享隐藏、逐字追踪原型、外接屏 / Sidecar、浏览器只读同步和 Director 模式；其中语音激活播放可复用现有 `AudioLevelMonitor`，逐字追踪需要先新增 `ReadingToken` 层。
+- 更新 `resources.md` 登记 Textream 本地源码归档、commit、授权说明和分析文档；更新 `.gitignore` 忽略 `artifacts/reference-repos/`，避免误把外部仓库提交进 Sotto 主仓库。
+- 根据 Textream 分析优先落地两个低风险能力：新增 `PromptReadingMode`，在设置齿轮中提供 `TIME` / `VOICE` 阅读模式；语音激活模式下播放 tick 只在麦克风音量超过阈值时推进，静音时冻结当前短语进度且不累计静音时间。
+- 新增屏幕共享隐藏开关：设置齿轮中可切换 `VISIBLE` / `HIDDEN`，正式提词窗口会根据 `TeleprompterSettings.hidesFromScreenShare` 设置 `NSWindow.sharingType`，用于录屏 / 会议场景中让提词窗口只给自己看。
+- 新增测试覆盖语音激活静音不推进、有声推进，以及提词窗口 `sharingType` 在隐藏 / 可见两种状态下的行为。
+- 根据 Dewens 反馈将设置齿轮浮层中文化：标题、窗口位置、阅读模式、屏幕共享、亮度、状态芯片和按钮文案均改为中文短文案，并收紧中文像素字距以适配小面板。
+
+## 2026-05-07
+- 根据 Dewens 第一次真实试用反馈，确认本轮重点从“动效补齐”转为“后台可操作重心 + 正式提词真实可用性”。
+- 优化编辑页右侧布局：收紧上方短语切分面板高度，增加与下方提词预览之间的垂直间距，并拉开预览标题和正文，避免停顿 / 强调 / 耗时控制与提词预览挤在一起。
+- 将首页和全局背景中规律的装饰波形替换为更松散的低频动态场，避免误导为功能性波形。
+- 新增麦克风音量监听 `AudioLevelMonitor` 和 `SottoVoiceWaveform`，让编辑页提词预览与正式提词窗口下方声波根据用户音量从中心向两侧扩散；当前只做音量可视化，不做自动语音跟稿。
+- 修复麦克风监听首次接入后的崩溃：Crash 报告显示音频 tap 回调在 Core Audio 实时队列触发 Swift `@MainActor` 隔离检查；已移除监视器的 MainActor 隔离，并只在主队列发布 UI 状态。
+- 补充 `NSMicrophoneUsageDescription` 到 SwiftPM 打包脚本生成的 `Info.plist`，避免后续麦克风权限说明缺失。
+- 优化正式提词窗口：AppKit 面板改为可 resize，SwiftUI 提供隐形四角拖拽命中区；窗口尺寸会同步回 `TeleprompterSettings` 并按安全范围 clamp，避免可见角标造成透明方角错觉。
+- 优化正式提词交互：右上角增加轻量 `xmark` 退出按钮；播放后 `REC` 状态点和文字变红；正文区域改为可滚动歌词式列表，点击任一句可直接跳到该句并保持播放状态。
+- 根据 Dewens 对正式提词窗口截图的补充反馈，进一步移除默认态退出按钮底色和描边，仅在 hover 时浮出按钮轮廓，减少“贴片 / 插件”感。
+- 继续修复正式提词窗口浅色背景下的透明方角痕迹：确认问题来自无边框透明 AppKit 窗口仍使用矩形系统阴影，已关闭 `NSWindow.hasShadow`，改由 SwiftUI 圆角面板绘制自身柔光。
+- 针对正式提词窗口仍可见“透明矩形角”的后续反馈，新增 `PromptWindowAppearance` 统一配置提词浮窗外观：AppKit `NSHostingView` 现在按 30px 连续圆角做 layer mask，SwiftUI 提词外壳和玻璃面板也使用同一圆角裁剪，避免只把内部卡片画圆而窗口承载层仍保留矩形边界。
+- 根据 Dewens 对真实提词专注度的反馈，进入正式提词后会临时隐藏原来的大编辑窗口，只保留 `Sotto Prompt` 浮窗；关闭提词后恢复编辑窗口，避免录屏时后台界面继续占屏。
+- 根据动效文档中的 React Bits `ElasticSlider` 参考，将提词窗口底部速度、字号、透明度和宽度控制从 `- / 数值 / +` 步进器改为紧凑弹性滑杆：hover / 拖动时轨道轻微变厚和微亮，边界有小幅阻尼，宽度拖动时跟手调整窗口。
+- 新增 AppModel 测试覆盖点击跳句、播放状态保留、窗口拖拽尺寸同步与 clamp。
+- 新增测试覆盖滑杆式字号 / 透明度 / 宽度 setter clamp、速度滑杆档位映射，以及提词窗口打开时只隐藏可见的非提词窗口。
+- 验证结果：`swift test` 通过 20 个测试；`./script/build_and_run.sh --verify` 构建并启动成功；本机视觉检查确认首页动态场、后台右侧间距、正式提词窗口连续圆角、主编辑窗口在提词时隐藏、提词底部滑杆、右上角退出、REC 红色和点击跳句可用。
+- 根据 Dewens 对“设置齿轮、最近稿件 ellipsis、停顿 / 强调、现场必需项、滑杆冲突”的反馈，将齿轮接入轻量设置浮层，支持位置预设与亮度调节，并在首页、准备中和编辑页保持同一入口。
+- 将最近稿件的 ellipsis 从装饰图标改为小菜单，支持打开、放回首页输入区、移除；菜单采用叠堆卡片式浮层和 spring 转场，减少首页重操作感。
+- 将“停顿 / 强调”从本地假状态改为写入 `SentenceSegment` 的真实节奏设置：预计耗时、播放推进、当前句强调视觉和最近稿件保存都会同步更新。
+- 将正式提词窗口底部滑杆收纳进 `TUNE` 抽屉，默认只显示上一句 / 播放 / 下一句 / 调节 / 位置按钮；抽屉打开后浮在控制栏上方，降低拖动滑杆和拖动提词器窗口之间的冲突。
+- 补齐提词现场基础项：设置浮层位置预设、提词窗口位置按钮、Prompt 菜单键盘快捷键、亮度调节、关闭提词时停止麦克风监听。
+
 ## 2026-05-06
 - 按 AGENTS.md 重新读取 `README.md`、`context.md`、`progress.md`、`decisions.md` 以及 9 份关键动效 / UI / 页面参考文档，确认本轮不重做产品、不改技术栈，只在 SwiftPM + SwiftUI + 少量 AppKit 的 MVP 0.1+ 上补强可维护动效与真实可用性。
 - 对照 `docs/sotto-interaction-motion-principles-v1.md` 梳理动效状态：顶部同源 4 束舞台光、点阵呼吸、状态点、准备步骤、切分点反馈和短语扫读已实现；控制栏 hover 浮现、低频公告卡片、短字标信号漂移、阅读边缘保护和 reduce motion 仍需补齐或加强。
