@@ -1,0 +1,64 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="stageGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 430) rotate(90) scale(560 430)">
+      <stop stop-color="#FFF4D6" stop-opacity="0.18"/>
+      <stop offset="0.46" stop-color="#B9A981" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#050504" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="pixelGlow" x="190" y="188" width="650" height="656" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="11" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="#050504"/>
+  <g opacity="0.48" fill="#FFF3D1">
+    <circle cx="106" cy="120" r="3"/>
+    <circle cx="190" cy="86" r="2"/>
+    <circle cx="286" cy="124" r="2"/>
+    <circle cx="382" cy="86" r="3"/>
+    <circle cx="488" cy="124" r="2"/>
+    <circle cx="612" cy="88" r="2"/>
+    <circle cx="730" cy="126" r="3"/>
+    <circle cx="838" cy="88" r="2"/>
+    <circle cx="928" cy="148" r="2"/>
+    <circle cx="86" cy="254" r="2"/>
+    <circle cx="176" cy="214" r="3"/>
+    <circle cx="476" cy="210" r="2"/>
+    <circle cx="874" cy="230" r="3"/>
+    <circle cx="948" cy="332" r="2"/>
+    <circle cx="86" cy="462" r="3"/>
+    <circle cx="182" cy="566" r="2"/>
+    <circle cx="850" cy="554" r="2"/>
+    <circle cx="934" cy="676" r="3"/>
+    <circle cx="116" cy="780" r="2"/>
+    <circle cx="246" cy="904" r="2"/>
+    <circle cx="412" cy="862" r="3"/>
+    <circle cx="604" cy="914" r="2"/>
+    <circle cx="790" cy="866" r="3"/>
+    <circle cx="914" cy="902" r="2"/>
+  </g>
+
+  <path d="M480 88H544L660 752H364L480 88Z" fill="url(#stageGlow)"/>
+
+  <g fill="#050504" opacity="0.86">
+    <rect x="210" y="230" width="604" height="136" rx="22"/>
+    <rect x="210" y="362" width="154" height="154" rx="22"/>
+    <rect x="210" y="496" width="520" height="132" rx="22"/>
+    <rect x="660" y="620" width="154" height="154" rx="22"/>
+    <rect x="234" y="754" width="580" height="136" rx="22"/>
+  </g>
+
+  <g filter="url(#pixelGlow)" fill="#FFF1C8">
+    <rect x="246" y="266" width="532" height="90" rx="14"/>
+    <rect x="246" y="356" width="106" height="124" rx="14"/>
+    <rect x="246" y="480" width="448" height="90" rx="14"/>
+    <rect x="636" y="570" width="106" height="124" rx="14"/>
+    <rect x="270" y="694" width="472" height="90" rx="14"/>
+  </g>
+
+  <circle cx="512" cy="872" r="12" fill="#33E6A7"/>
+</svg>

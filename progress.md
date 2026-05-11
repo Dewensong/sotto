@@ -1,5 +1,19 @@
 # 推进记录
 
+## 2026-05-11（GitHub 公开前仓库体检）
+
+- **完成公开前全面体检**：仓库卫生检查（`.gitignore` 覆盖完整、无 `.DS_Store`/构建产物被跟踪、公开素材大小合理）、敏感信息扫描（无 API key / token / 密码 / 邮箱 / 手机号泄露）、README 公开可读性确认（30 秒可理解、未过度承诺 AI、明确 MVP/自用/无签名/跟声限制）、构建验证（`swift test` 44 测试通过、`build_and_run.sh --verify` 成功、`CFBundleIconFile` 和 `Sotto.icns` 已就位）。
+- **结论**：仓库卫生和敏感信息均无阻断项，可以准备提交并推 GitHub；仅需注意 `artifacts/reference-screenshots/` 中的 Claudio 参考截图来自公开抖音视频、`work/` 文件包含内部开发笔记但已决定公开展示过程。
+
+## 2026-05-11（GitHub 公开素材准备）
+
+- **补齐 GitHub 首屏素材**：新增 `artifacts/github-media/` 公开素材目录，放入当前真实运行 build 截图、README hero 图、logo PNG 和短演示 slideshow；README 首屏已引用 logo 与 hero 图，截图区已改为真实运行截图。
+- **重做 README hero 构图**：将原先截图拼贴式 hero 改为产品宣传照结构：上方是 logo、标题、定位文案和能力标签，下方以编辑工作台为主视觉对象，右下叠放正式提词窗口，减少“不明所以”的信息噪音。
+- **补齐 App 图标 / Logo**：新增 `Sources/Sotto/Resources/AppIcon/SottoIcon.svg`、`SottoLogo.svg` 与 `Sotto.icns`。品牌 logo 采用无边框点阵星光黑底 + 放大像素 `S`，用于 README / GitHub；macOS app icon 保留轻微圆角容器、聚光和像素 `S`，用于 `.app` 语境；`script/build_and_run.sh` 已把 `.icns` 复制进 `.app` bundle 并写入 `CFBundleIconFile`。
+- **补齐公开授权**：新增根目录 `LICENSE`，Sotto 源码采用 MIT License；`decisions.md` 记录授权取舍，README 说明 Fusion Pixel Font 仍保留原始 OFL 授权。
+- **补齐发布素材记录**：新增 `work/public-release-media-check-2026-05-11.md`，记录本轮素材清单、图标设计说明和验收边界；更新 `resources.md` 登记 GitHub 媒体目录与图标资源。
+- **仍需真实验证**：本轮短演示是静默截图 slideshow，不替代完整 3-5 分钟真实口播；麦克风首启、具体录屏工具的屏幕共享隐藏和长稿性能仍需单独试用。
+
 ## 2026-05-11（续二）
 
 - **修复跟声模式不跟声**：三个根因叠加——归一化公式 `(dB + 58) / 42` 把正常说话映射到 0.43-0.90 但阈值滑杆范围只覆盖 0.01-0.12（全是底噪区）；EMA 平滑 `0.72*old + 0.28*new` 延迟约 80-100ms；无迟滞导致单次静音 buffer 就冻结播放。修复：归一化改为 `(dB + 60) / 50` 拉宽动态范围；EMA 改为 `0.45*old + 0.55*new` 加快响应；`shouldAdvancePlayback` 增加迟滞（需连续 4 帧低于阈值才暂停）；滑杆范围改为 `0.08...0.50`，默认阈值改为 `0.12`；更新测试适配迟滞逻辑。

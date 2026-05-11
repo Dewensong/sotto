@@ -2,7 +2,13 @@
 
 Personal macOS teleprompter for vibe coding demos.
 
+<p align="center">
+  <img src="artifacts/github-media/sotto-logo-1024.png" width="128" alt="Sotto logo">
+</p>
+
 Sotto is a quiet backstage for speaking well while showing code, products, and AI workflows. Paste a prepared script, shape its rhythm sentence by sentence, and keep a low-distraction prompt window floating near your stage.
+
+![Sotto editor workbench and prompt window](artifacts/github-media/sotto-github-hero.png)
 
 > 中文说明：Sotto 是一个为 vibe coding 和 AI 产品演示准备的 Mac 原生提词器。它优先服务 Dewens 自己的录屏、demo 和远程展示，也作为一个公开演进的 vibe coding 作品。
 
@@ -25,8 +31,9 @@ Sotto is currently an MVP 0.1 build for personal use and public learning. The co
 
 Recently verified locally:
 
-- `swift test` passed 43 tests.
+- `swift test` passed 44 tests.
 - `./script/build_and_run.sh --verify` built and launched `dist/Sotto.app`.
+- Current app screenshots and a short silent demo slideshow were captured from the running local build.
 
 Still being validated:
 
@@ -34,7 +41,7 @@ Still being validated:
 - Voice activation threshold in real recordings.
 - Screen-sharing hide behavior with actual recording tools.
 - Long-script stability and performance.
-- Public screenshots, short demo media, and a final license decision.
+- A full 3-5 minute real speaking demo.
 
 ## What It Does
 
@@ -65,7 +72,19 @@ Still being validated:
 
 ## Screenshots
 
-Current public screenshots are still being prepared from the latest running build.
+These screenshots were captured from the current local MVP build.
+
+![Sotto home screen](artifacts/github-media/sotto-home.png)
+
+![Sotto editor workbench](artifacts/github-media/sotto-editor-workbench.png)
+
+![Sotto floating prompt window](artifacts/github-media/sotto-prompt-window.png)
+
+![Sotto prompt settings](artifacts/github-media/sotto-prompt-settings.png)
+
+![Sotto document library](artifacts/github-media/sotto-document-library.png)
+
+A short silent demo slideshow is available at [artifacts/github-media/sotto-demo-slideshow.mp4](artifacts/github-media/sotto-demo-slideshow.mp4).
 
 The design direction is documented in:
 
@@ -113,10 +132,8 @@ artifacts/               # Local reference assets; large/raw folders are ignored
 ### Before Public Demo
 
 - Record one real 3-5 minute vibe coding demo with Sotto.
-- Capture current screenshots and a short demo clip.
 - Improve microphone permission and fallback states.
 - Validate screen-sharing hide behavior with actual recording tools.
-- Add a public license file.
 
 ### MVP 0.2 Candidates
 
@@ -139,7 +156,7 @@ artifacts/               # Local reference assets; large/raw folders are ignored
 - Screen-sharing hiding depends on macOS window behavior and must be validated with the specific recording / meeting tool.
 - Sotto is built for my workflow first; general-purpose teleprompter polish is not the immediate goal.
 - There is no signed release package yet.
-- Public demo screenshots and video are still pending.
+- The current demo video is a silent screenshot slideshow, not a full narrated walkthrough.
 
 ## Design Notes
 
@@ -158,6 +175,7 @@ The current public release track is documented in:
 
 - [Self-use Acceptance Plan](work/self-use-acceptance-2026-05-10.md)
 - [Public Release Readiness Review](work/public-release-readiness-review-2026-05-10.md)
+- [Public Release Media Check](work/public-release-media-check-2026-05-11.md)
 
 This repository is intended to show both the app and the process: product judgment, visual exploration, real-use feedback, and implementation tradeoffs.
 
@@ -169,7 +187,7 @@ This repository is intended to show both the app and the process: product judgme
 
 ## License
 
-License decision is still pending before public release. The bundled Fusion Pixel Font keeps its original OFL license.
+Sotto is released under the [MIT License](LICENSE). The bundled Fusion Pixel Font keeps its original OFL license.
 
 ## For Future Collaborators
 
