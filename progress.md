@@ -1,5 +1,24 @@
 # 推进记录
 
+## 2026-05-14（AI 时间结构分析功能）
+
+- **新增 AI 分析能力**：实现稿件 AI 分析功能，支持上传带时间标记的口播稿，由 DeepSeek 模型解析时间结构并驱动提词节奏。完整覆盖从数据模型、API 调用、Key 管理到 UI 交互的全链路。
+- **SottoCore 新增模型**：`AiScriptAnalysis.swift`（`TimeSegment` + 分析结果），`PromptDocument` 新增 `timeAnalysis` 可选字段，`SentenceSegment` 新增 `targetStartSeconds`/`targetEndSeconds` 时间锚点。向后兼容旧 JSON 稿件。
+- **SottoCore 新增服务层**：`AIService.swift`（`AIService` 协议 + `DeepSeekService` 实现，DeepSeek API 兼容 OpenAI Chat Completions 格式），`ApiKeyProvider.swift`（环境变量 `DEEPSEEK_API_KEY` 优先，`~/.sotto/config.json` 作为 fallback）。零第三方依赖。
+- **SegmentationService 扩展**：新增 `segmentWithTimeAnalysis()` 方法，将 AI 返回的时间段落映射为带时间锚点的句子，并按字符比例将时间段长分配到短语 `estimatedDuration`。
+- **播放逻辑更新**：`AppModel.tickPlayback` 在句子有显式时间锚点时，使用短语的 `estimatedDuration`（来自时间段分配）而非 `TimingProfile` 字符估算，实现时间锚点优先的提词节奏。
+- **UI 新增**：HomeView 输入区工具栏新增「AI 分析」按钮（brain.head.profile 图标），点击弹出二选一子面板（「仅解析时间」保留原文 / 「优化内容」可改写），分析中显示 ProgressView + 取消按钮，错误 toast 自动 fallback。
+- **测试**：新增 `AiAnalyticsTests.swift`（13 个测试），覆盖 Codable 往返、ApiKeyProvider 优先级逻辑、时间锚点短语时长分配、时间锚点播放推进、向后兼容解码。全量 57 测试通过。
+- **验证**：`swift build` 无警告，`swift test` 57 测试通过，`./script/build_and_run.sh --verify` 构建启动成功。
+- **补充 API Key 设置入口**：在设置面板（齿轮图标）中新增 DeepSeek API Key 配置区，包含 SecureField 输入框、保存按钮和已配置状态指示。Key 保存到 `~/.sotto/config.json`，启动时自动读取。`ApiKeyProvider` 新增 `saveConfig()` 写文件能力。
+- **API 连通性测试按钮**：设置面板新增「测试」按钮，发起真实的轻量级 Chat Completions 请求（max_tokens=5）验证 API 连通性。`AppModel` 新增 `ApiTestState` 枚举（idle/testing/success/failed），状态指示器实时反映连通结果——绿色「已连通」、红色「未连通」（含具体错误信息）、菊花「检测中...」。支持网络不通、401/403 等异常场景的友好提示。
+- **两阶段 AI 管线**：将单次 API 调用升级为"提取纯净稿 → 估算时间"两步串行管线。新增 `ScriptSpeedTier` 枚举（慢速 3.8 / 中速 4.5 / 快速 5.2 字/秒）、`CleanScriptOutput` 模型、`extractCleanScript()` 和 `estimateTiming()` 方法。HomeView 面板新增语速选择 +「开始智能分析」按钮，分析中显示阶段进度（"提取纯净稿..." / "估算时间..."），第一步完成后编辑器立刻显示清洗结果。原有「仅解析时间」「优化内容」按钮折叠到"更多选项"。`AIService` 提取 `performChatRequest` 公共方法消除重复。新增 4 个测试，全量 61 测试通过。
+- **段落/章节标记**：`SentenceSegment` 新增 `paragraphIndex` 可选字段（向后兼容旧稿件），`SegmentationService` 新增 `computeParagraphIndices()` 根据纯净稿空行（`\n\n`）自动判定段落归属。提词窗新增段落分隔线（细线 + 中心点，仅多段落稿件显示）和侧边栏段落位置提示（"段落 2/5"）。新增 3 个测试，全量 64 测试通过。
+- **字间距 / 行间距设置**：`TeleprompterSettings` 新增 `lineSpacing`（默认 0.18，范围 0.06-0.42）和 `tracking`（默认 0，范围 0-6pt）。设置面板新增「行间距」「字间距」两个滑块。提词窗正文和逐词/逐字扫光视图的硬编码 `.lineSpacing(size * 0.18)` 替换为 `model.settings.lineSpacing * size`，新增 `.tracking(model.settings.tracking)`。
+- **快捷键书签**：`AppModel` 新增 `bookmarkedSentenceIndex`、`setBookmark()`、`jumpToBookmark()`。⌘B 设书签，⌘⇧B 跳转书签。提词窗侧边栏显示书签位置（"句 N"），点击可跳转。
+- **输入历史撤销**：`AppModel` 新增 `inputHistory` 栈，AI 清洗和清空编辑器前自动保存历史。⌘Z 撤销到上一版本，HomeView 工具栏新增撤销按钮（仅历史可用时显示）。
+- **稿件导出**：`AppModel` 新增 `exportCurrentDocument()`，⌘E 触发。支持两种格式：Markdown（含时间表、段落分组、时长统计）和纯文本。使用 NSSavePanel 选择导出位置。HomeView 工具栏新增导出按钮。
+
 ## 2026-05-12（项目整理）
 
 - **评估 Swift 代码结构**：确认 `Sources/` 下 `SottoCore`（纯逻辑）→ `Sotto`（UI 层）的分层已符合 AGENTS.md 精神，Models/Services/Stores 分组清晰，依赖方向正确，无需调整。
@@ -246,6 +265,15 @@
 - 融入 Magic UI `ProgressiveBlur` 参考：将其转译为 Sotto 的「滚动边缘渐进模糊」原则，用于稿件编辑区、最近稿件列表、切分面板、提词预览和提词窗口边缘弱化，强调它是阅读保护层，不遮挡当前句、当前短语和关键操作。
 - 融入 Magic UI `DotPattern` 参考：将其确认为 Sotto 默认低成本 SVG 点阵背景底座，适用于首页、编辑页、切分面板和提词窗口，并根据反馈明确点阵背景默认也要有非常缓慢的呼吸感；`glow` 按场景分级，首页 / 准备中更明显，编辑区 / 提词窗口更弱、更慢，作为 PixelBlast 和 Unicorn Studio 的可靠降级层。
 - 记录 Magic UI `AnimatedThemeToggler` 参考：作为后续明亮 / 黑暗模式切换的交互候选，转译为「全局换光」原则，明确本期不实现，只登记 View Transitions API、clip-path reveal、低干扰形状和直接切换降级规则。
+
+## 2026-05-14（速度控制、镜像翻转、段落命名、倒计时）
+
+- **速度控制重做**：⌘←/⌘→ 改为减速/加速（每次 ±0.05），新增 ←/→ 无修饰键跳句。提词窗 controls 栏增加速度倍率显示（`%.2fx`）。
+- **镜像翻转**：`TeleprompterSettings` 新增 `mirrored: Bool`，SottoSettingsPanel 增加镜像开/关切换，TeleprompterWindowView 通过 `scaleEffect(x: -1, y: 1)` 实现水平翻转，用于物理反射板场景。
+- **段落自动命名**：侧边栏段落位置从固定"段落"改为显示当前段落第一句的前 8 个字符。
+- **播放前 3-2-1 倒计时**：`AppModel` 新增 `countdownPhase` 状态和 `startPlaybackWithCountdown()` 方法，按 Space 或点击播放时先显示 3/2/1 大字淡入淡出动画，结束后自动开始播放。播放中按 Space 仍直接暂停。
+- 快捷键提示更新：侧边栏和设置面板帮助文本同步更新。
+- 64 个测试全量通过。
 
 ## 记录规则
 - 每次重要推进追加一条日期记录

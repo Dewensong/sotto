@@ -4,14 +4,17 @@ public struct SegmentationService: Sendable {
     public init() {}
 
     public func segment(_ text: String, title: String? = nil, timing: TimingProfile = .standard) -> PromptDocument {
-        let sentences = splitSentences(text).map { sentenceText in
+        let rawSentences = splitSentences(text)
+        let paragraphIndices = computeParagraphIndices(text: text, sentences: rawSentences)
+        let sentences = zip(rawSentences, paragraphIndices).map { sentenceText, paraIndex in
             SentenceSegment(
                 text: sentenceText,
                 phrases: splitPhrases(sentenceText).map { phraseText in
                     var phrase = PhraseSegment(text: phraseText)
                     phrase.estimatedDuration = timing.duration(for: phrase)
                     return phrase
-                }
+                },
+                paragraphIndex: paraIndex
             )
         }
         return PromptDocument(
@@ -19,6 +22,72 @@ public struct SegmentationService: Sendable {
             rawText: text,
             sentences: sentences
         )
+    }
+
+    public func segmentWithTimeAnalysis(
+        _ text: String,
+        title: String? = nil,
+        timing: TimingProfile = .standard,
+        analysis: AiScriptAnalysis
+    ) -> PromptDocument {
+        let segmentTexts = analysis.segments.map(\.content)
+        let paragraphIndices = computeParagraphIndices(text: text, sentences: segmentTexts)
+
+        let sentences = zip(analysis.segments, paragraphIndices).map { timeSegment, paraIndex in
+            let phraseTexts = splitPhrases(timeSegment.content)
+            let sentenceDuration = timeSegment.endSeconds - timeSegment.startSeconds
+            let totalChars = phraseTexts.reduce(0) { $0 + $1.count }
+
+            let phrases: [PhraseSegment] = phraseTexts.map { phraseText in
+                var phrase = PhraseSegment(text: phraseText)
+                let proportion = Double(phraseText.count) / Double(max(1, totalChars))
+                phrase.estimatedDuration = max(0.35, sentenceDuration * proportion)
+                return phrase
+            }
+
+            return SentenceSegment(
+                text: timeSegment.content,
+                phrases: phrases,
+                targetStartSeconds: timeSegment.startSeconds,
+                targetEndSeconds: timeSegment.endSeconds,
+                paragraphIndex: paraIndex
+            )
+        }
+        return PromptDocument(
+            title: title ?? defaultTitle(from: text),
+            rawText: text,
+            sentences: sentences,
+            timeAnalysis: analysis
+        )
+    }
+
+    /// Assigns a 0-based paragraph index to each sentence by locating it within the text's paragraph structure.
+    public func computeParagraphIndices(text: String, sentences: [String]) -> [Int?] {
+        let paragraphs = text
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard paragraphs.count > 1 else {
+            return sentences.map { _ in nil }
+        }
+
+        return sentences.map { sentence in
+            let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+            for (index, paragraph) in paragraphs.enumerated() {
+                if paragraph.contains(trimmed) {
+                    return index
+                }
+            }
+            // Fallback: try fuzzy match with first 15 chars
+            let prefix = String(trimmed.prefix(15))
+            for (index, paragraph) in paragraphs.enumerated() {
+                if paragraph.contains(prefix) {
+                    return index
+                }
+            }
+            return nil
+        }
     }
 
     public func splitSentences(_ text: String) -> [String] {

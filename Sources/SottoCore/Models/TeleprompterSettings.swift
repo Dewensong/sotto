@@ -13,6 +13,9 @@ public struct TeleprompterSettings: Codable, Equatable, Sendable {
     public var voiceActivationThreshold: Double
     public var cursorMode: TokenCursorMode
     public var bodyFontName: String?
+    public var lineSpacing: Double
+    public var tracking: Double
+    public var mirrored: Bool
 
     public var usesPixelFont: Bool { bodyFontName == nil }
 
@@ -28,7 +31,10 @@ public struct TeleprompterSettings: Codable, Equatable, Sendable {
         speedMultiplier: Double = 0.72,
         voiceActivationThreshold: Double = 0.12,
         cursorMode: TokenCursorMode = .character,
-        bodyFontName: String? = nil
+        bodyFontName: String? = nil,
+        lineSpacing: Double = 0.18,
+        tracking: Double = 0,
+        mirrored: Bool = false
     ) {
         self.fontSize = fontSize
         self.width = width
@@ -42,6 +48,9 @@ public struct TeleprompterSettings: Codable, Equatable, Sendable {
         self.voiceActivationThreshold = voiceActivationThreshold
         self.cursorMode = cursorMode
         self.bodyFontName = bodyFontName
+        self.lineSpacing = lineSpacing
+        self.tracking = tracking
+        self.mirrored = mirrored
     }
 }
 

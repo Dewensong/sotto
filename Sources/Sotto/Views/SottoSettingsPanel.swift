@@ -14,12 +14,18 @@ struct SottoSettingsPanel: View {
                     positionPresets
                     readingModeControl
                     cursorModeControl
+                    apiKeyControl
                     fontControl
                     privacyControl
+                    mirrorControl
                     Divider().background(Color.sottoPrimary.opacity(0.10))
                     HStack(spacing: 12) {
                         fontSizeControl
                         speedControl
+                    }
+                    HStack(spacing: 12) {
+                        lineSpacingControl
+                        trackingControl
                     }
                     HStack(spacing: 12) {
                         opacityControl
@@ -144,6 +150,125 @@ struct SottoSettingsPanel: View {
         }
     }
 
+    private var apiKeyControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                settingLabel("DeepSeek API Key")
+                apiStatusDot
+            }
+
+            HStack(spacing: 6) {
+                SecureField("sk-...", text: $model.apiKeyInput)
+                    .font(SottoFont.pixel(10))
+                    .foregroundStyle(Color.sottoPrimary)
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 8)
+                    .frame(height: 28)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .stroke(Color.sottoPrimary.opacity(0.12), lineWidth: 1)
+                    )
+
+                Button {
+                    model.saveApiKey()
+                } label: {
+                    Text("保存")
+                        .font(SottoFont.pixel(9))
+                        .foregroundStyle(Color.sottoPrimary)
+                        .padding(.horizontal, 10)
+                        .frame(height: 28)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(model.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                Button {
+                    model.testApiConnection()
+                } label: {
+                    HStack(spacing: 3) {
+                        if model.apiTestState == .testing {
+                            ProgressView()
+                                .scaleEffect(0.45)
+                                .frame(width: 10, height: 10)
+                        } else {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 7))
+                        }
+                        Text("测试")
+                            .font(SottoFont.pixel(9))
+                    }
+                    .foregroundStyle(model.apiTestState == .testing ? Color.sottoMuted : Color.sottoPrimary)
+                    .padding(.horizontal, 8)
+                    .frame(height: 28)
+                    .background(Color.white.opacity(model.apiTestState == .testing ? 0.03 : 0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(!model.hasApiKey || model.apiTestState == .testing)
+            }
+
+            apiTestStatusLine
+
+            SettingsHintText(text: "在 DeepSeek 控制台获取 Key。保存后通过测试按钮验证连通性。")
+        }
+    }
+
+    @ViewBuilder
+    private var apiStatusDot: some View {
+        switch model.apiTestState {
+        case .success:
+            Circle()
+                .fill(Color.sottoGreen)
+                .frame(width: 6, height: 6)
+                .shadow(color: Color.sottoGreen.opacity(0.6), radius: 6)
+            Text("已连通")
+                .font(SottoFont.pixel(9))
+                .foregroundStyle(Color.sottoGreen)
+        case .testing:
+            ProgressView()
+                .scaleEffect(0.5)
+                .frame(width: 6, height: 6)
+            Text("检测中...")
+                .font(SottoFont.pixel(9))
+                .foregroundStyle(Color.sottoMuted)
+        case .failed:
+            Circle()
+                .fill(Color.sottoRed)
+                .frame(width: 6, height: 6)
+                .shadow(color: Color.sottoRed.opacity(0.5), radius: 6)
+            Text("未连通")
+                .font(SottoFont.pixel(9))
+                .foregroundStyle(Color.sottoRed)
+        case .idle:
+            Circle()
+                .fill(model.hasApiKey ? Color.sottoGlow : Color.sottoMuted)
+                .frame(width: 6, height: 6)
+            if model.hasApiKey {
+                Text("已配置")
+                    .font(SottoFont.pixel(9))
+                    .foregroundStyle(Color.sottoGreen)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var apiTestStatusLine: some View {
+        if case .failed(let message) = model.apiTestState {
+            HStack(spacing: 5) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 7))
+                    .foregroundStyle(Color.sottoRed)
+                Text(message)
+                    .font(SottoFont.pixel(9))
+                    .foregroundStyle(Color.sottoRed)
+                    .lineLimit(2)
+            }
+        }
+    }
+
     private var fontControl: some View {
         VStack(alignment: .leading, spacing: 6) {
             settingLabel("正文字体")
@@ -198,6 +323,20 @@ struct SottoSettingsPanel: View {
         }
     }
 
+    private var mirrorControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            settingLabel("镜像翻转")
+            SettingsToggleRow(
+                title: model.settings.mirrored ? "已翻转" : "正常",
+                systemName: model.settings.mirrored ? "arrow.left.and.right.righttriangle.left.righttriangle.right" : "rectangle",
+                enabled: model.settings.mirrored
+            ) {
+                model.setMirrored(!model.settings.mirrored)
+            }
+            SettingsHintText(text: "用于物理反射板场景，将提词窗水平翻转。")
+        }
+    }
+
     private var fontSizeControl: some View {
         VStack(alignment: .leading, spacing: 6) {
             settingLabel("默认字号")
@@ -209,6 +348,36 @@ struct SottoSettingsPanel: View {
                 rightIcon: "textformat.size.larger"
             ) { value in
                 model.setPromptFontSize(value)
+            }
+        }
+    }
+
+    private var lineSpacingControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            settingLabel("行间距")
+            SottoElasticSlider(
+                value: model.settings.lineSpacing,
+                range: 0.06...0.42,
+                valueText: "\(Int(model.settings.lineSpacing * 100))%",
+                leftIcon: "arrow.down.and.line.horizontal.and.arrow.up",
+                rightIcon: "arrow.up.and.line.horizontal.and.arrow.down"
+            ) { value in
+                model.setLineSpacing(value)
+            }
+        }
+    }
+
+    private var trackingControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            settingLabel("字间距")
+            SottoElasticSlider(
+                value: model.settings.tracking,
+                range: 0...6,
+                valueText: String(format: "%.1fpt", model.settings.tracking),
+                leftIcon: "textformat.size.smaller",
+                rightIcon: "textformat.size.larger"
+            ) { value in
+                model.setTracking(value)
             }
         }
     }

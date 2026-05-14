@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import UniformTypeIdentifiers
 import SottoCore
 
 @MainActor
@@ -37,16 +38,39 @@ final class AppModel: ObservableObject {
     @Published private(set) var microphonePermissionDenied = false
     @Published var toast: SottoToastMessage?
     @Published private(set) var playbackElapsedDisplay = "00:00"
+    @Published private(set) var isAnalyzing = false
+    @Published var showAiOptions = false
+    @Published var pipelineProgressLabel = ""
+    @Published var pipelineSpeedTier: ScriptSpeedTier = .medium
+    @Published private(set) var bookmarkedSentenceIndex: Int?
+    @Published private(set) var canUndoInput = false
+    @Published var apiKeyInput: String = ""
+    @Published private(set) var hasApiKey: Bool = false
+    @Published private(set) var apiTestState: ApiTestState = .idle
+    @Published private(set) var countdownPhase: Int? = nil
+
+    enum ApiTestState: Equatable {
+        case idle
+        case testing
+        case success
+        case failed(String)
+    }
 
     private let segmentationService = SegmentationService()
     private let store: PromptDocumentStore
     private let teleprompterWindowController = TeleprompterWindowController()
     private let audioLevelMonitor = AudioLevelMonitor()
+    private let apiKeyProvider = ApiKeyProvider()
     private var lastPlaybackTick: Date?
     private var playbackSegmentStart: Date?
     private var playbackPausedElapsed: TimeInterval = 0
     private var voiceGateQuietFrameCount: Int = 0
     private var toastDismissTask: Task<Void, Never>?
+    private var analyzeTask: Task<Void, Never>?
+    private var pipelineTask: Task<Void, Never>?
+    private var apiTestTask: Task<Void, Never>?
+    private var countdownTask: Task<Void, Never>?
+    private var inputHistory: [String] = []
     private var cancellables: Set<AnyCancellable> = []
 
     private static let defaultDocumentTitle = "新的提词稿"
@@ -58,6 +82,8 @@ final class AppModel: ObservableObject {
     private let promptBrightnessRange: ClosedRange<Double> = 0.65...1.2
     private let promptSpeedMultiplierRange: ClosedRange<Double> = 0.55...1.65
     private let voiceActivationThresholdRange: ClosedRange<Double> = 0.08...0.50
+    private let lineSpacingRange: ClosedRange<Double> = 0.06...0.42
+    private let trackingRange: ClosedRange<Double> = 0...6
 
     init(store: PromptDocumentStore = PromptDocumentStore()) {
         self.store = store
@@ -78,6 +104,7 @@ final class AppModel: ObservableObject {
             }
             .store(in: &cancellables)
         loadRecentDocuments()
+        refreshApiKeyStatus()
     }
 
     var selectedSentenceIndex: Int? {
@@ -110,6 +137,341 @@ final class AppModel: ObservableObject {
         } catch {
             triggerErrorToast("稿件保存失败")
         }
+    }
+
+    func analyzeScript(mode: AiAnalysisMode) {
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let config = try? apiKeyProvider.resolve() else {
+            triggerErrorToast("未配置 DeepSeek API Key。请在设置面板（齿轮图标）中填入 Key。")
+            return
+        }
+
+        showAiOptions = false
+        isAnalyzing = true
+        let service = DeepSeekService(config: config)
+
+        analyzeTask = Task { @MainActor in
+            do {
+                let analysis = try await service.analyzeScript(trimmed, mode: mode)
+                isAnalyzing = false
+                applyAnalysis(analysis, mode: mode)
+            } catch {
+                isAnalyzing = false
+                if Task.isCancelled { return }
+                triggerErrorToast("AI 分析失败：\(error.localizedDescription)")
+            }
+        }
+    }
+
+    func cancelAnalysis() {
+        analyzeTask?.cancel()
+        analyzeTask = nil
+        isAnalyzing = false
+    }
+
+    func processScriptWithAiPipeline(speed: ScriptSpeedTier? = nil) {
+        let tier = speed ?? pipelineSpeedTier
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let config = try? apiKeyProvider.resolve() else {
+            triggerErrorToast("未配置 DeepSeek API Key。请在设置面板（齿轮图标）中填入 Key。")
+            return
+        }
+
+        showAiOptions = false
+        isAnalyzing = true
+        pipelineProgressLabel = "提取纯净稿..."
+        let service = DeepSeekService(config: config)
+
+        pipelineTask = Task { @MainActor in
+            // Step 1: extract clean script
+            let cleanScript: String
+            do {
+                cleanScript = try await service.extractCleanScript(trimmed)
+            } catch {
+                isAnalyzing = false
+                pipelineProgressLabel = ""
+                if Task.isCancelled { return }
+                triggerErrorToast("纯净稿提取失败：\(error.localizedDescription)")
+                return
+            }
+
+            if Task.isCancelled {
+                isAnalyzing = false
+                pipelineProgressLabel = ""
+                return
+            }
+
+            pushInputHistory()
+            inputText = cleanScript
+            pipelineProgressLabel = "估算时间..."
+
+            // Step 2: estimate timing
+            let analysis: AiScriptAnalysis
+            do {
+                analysis = try await service.estimateTiming(cleanScript: cleanScript, speed: tier)
+            } catch {
+                isAnalyzing = false
+                pipelineProgressLabel = ""
+                if Task.isCancelled { return }
+                triggerErrorToast("时间估算失败，纯净稿已提取到编辑器中。")
+                return
+            }
+
+            isAnalyzing = false
+            pipelineProgressLabel = ""
+            applyPipelineResult(cleanScript: cleanScript, analysis: analysis)
+        }
+    }
+
+    func cancelPipeline() {
+        pipelineTask?.cancel()
+        pipelineTask = nil
+        isAnalyzing = false
+        pipelineProgressLabel = ""
+    }
+
+    private func applyPipelineResult(cleanScript: String, analysis: AiScriptAnalysis) {
+        var document = segmentationService.segmentWithTimeAnalysis(
+            cleanScript,
+            title: generatedTitle(from: cleanScript),
+            timing: timing,
+            analysis: analysis
+        )
+        document.title = generatedTitle(from: document.rawText)
+
+        do {
+            try store.save(document)
+            loadRecentDocuments()
+            triggerSaveToast("AI 分析完成，已保存到全部稿件")
+        } catch {
+            triggerErrorToast("稿件保存失败")
+        }
+
+        open(document, announceRhythmReady: true)
+    }
+
+    // MARK: - Bookmarks
+
+    func setBookmark() {
+        guard let index = session?.currentSentenceIndex else { return }
+        bookmarkedSentenceIndex = index
+    }
+
+    func jumpToBookmark() {
+        guard let index = bookmarkedSentenceIndex else { return }
+        jumpToSentence(at: index)
+    }
+
+    func clearBookmark() {
+        bookmarkedSentenceIndex = nil
+    }
+
+    // MARK: - Input history
+
+    func pushInputHistory() {
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let last = inputHistory.last, last == trimmed { return }
+        inputHistory.append(trimmed)
+        if inputHistory.count > 20 { inputHistory.removeFirst() }
+        canUndoInput = true
+    }
+
+    func undoInputChange() {
+        guard let previous = inputHistory.popLast() else { return }
+        inputText = previous
+        canUndoInput = !inputHistory.isEmpty
+    }
+
+    // MARK: - Export
+
+    func exportCurrentDocument() {
+        guard let document = currentDocument ?? session?.document else {
+            triggerErrorToast("没有可导出的稿件")
+            return
+        }
+
+        let panel = NSSavePanel()
+        panel.title = "导出提词稿"
+        panel.message = "选择导出格式和位置"
+        panel.allowedContentTypes = [UTType.plainText, UTType(filenameExtension: "md") ?? .plainText]
+        panel.nameFieldStringValue = "\(document.title).md"
+
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            let isMarkdown = url.pathExtension.lowercased() == "md"
+            let content = isMarkdown ? self?.exportMarkdown(document: document) : self?.exportPlainText(document: document)
+            guard let content else { return }
+            do {
+                try content.write(to: url, atomically: true, encoding: .utf8)
+                Task { @MainActor in
+                    self?.triggerSaveToast("稿件已导出到 \(url.lastPathComponent)")
+                }
+            } catch {
+                Task { @MainActor in
+                    self?.triggerErrorToast("导出失败：\(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func exportMarkdown(document: PromptDocument) -> String {
+        var output = "# \(document.title)\n\n"
+
+        if let analysis = document.timeAnalysis {
+            let totalMin = Int(analysis.totalDuration) / 60
+            let totalSec = Int(analysis.totalDuration) % 60
+            output += "**全片总时长**: \(String(format: "%d:%02d", totalMin, totalSec))\n\n"
+        }
+
+        var currentPara: Int?
+        for sentence in document.sentences {
+            if let para = sentence.paragraphIndex, para != currentPara {
+                currentPara = para
+                output += "### 段落 \(para + 1)\n\n"
+            }
+
+            if let start = sentence.targetStartSeconds, let end = sentence.targetEndSeconds {
+                let startStr = formatSeconds(start)
+                let endStr = formatSeconds(end)
+                let duration = Int(end - start)
+                output += "| \(startStr) | \(endStr) | \(duration)s | \(sentence.text) |\n"
+            } else {
+                output += "\(sentence.text)\n\n"
+            }
+        }
+
+        if let analysis = document.timeAnalysis, let summary = analysis.summary {
+            output += "\n---\n\n**摘要**: \(summary)\n"
+        }
+
+        return output
+    }
+
+    private func exportPlainText(document: PromptDocument) -> String {
+        var output = document.rawText
+        if let analysis = document.timeAnalysis {
+            let totalMin = Int(analysis.totalDuration) / 60
+            let totalSec = Int(analysis.totalDuration) % 60
+            output += "\n\n---\n全片总时长: \(String(format: "%d:%02d", totalMin, totalSec))"
+        }
+        return output
+    }
+
+    private func formatSeconds(_ seconds: TimeInterval) -> String {
+        let m = Int(seconds) / 60
+        let s = Int(seconds) % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    func refreshApiKeyStatus() {
+        hasApiKey = apiKeyProvider.hasKey()
+        if let config = try? apiKeyProvider.resolve() {
+            apiKeyInput = config.apiKey
+        }
+    }
+
+    func saveApiKey() {
+        let trimmed = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            triggerErrorToast("API Key 不能为空")
+            return
+        }
+        do {
+            try apiKeyProvider.saveConfig(.init(apiKey: trimmed))
+            hasApiKey = true
+            triggerSaveToast("API Key 已保存")
+        } catch {
+            triggerErrorToast("API Key 保存失败：\(error.localizedDescription)")
+        }
+    }
+
+    func testApiConnection() {
+        guard let config = try? apiKeyProvider.resolve() else {
+            apiTestState = .failed("未配置 Key")
+            return
+        }
+
+        apiTestTask?.cancel()
+        apiTestState = .testing
+
+        apiTestTask = Task { @MainActor in
+            do {
+                struct TestRequest: Codable {
+                    let model: String
+                    let messages: [Message]
+                    let max_tokens: Int
+                    let stream: Bool
+                    struct Message: Codable {
+                        let role: String
+                        let content: String
+                    }
+                }
+                let body = TestRequest(
+                    model: config.model,
+                    messages: [.init(role: "user", content: "hi")],
+                    max_tokens: 5,
+                    stream: false
+                )
+                var urlRequest = URLRequest(url: URL(string: "\(config.baseURL)/chat/completions")!)
+                urlRequest.httpMethod = "POST"
+                urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                urlRequest.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+                urlRequest.timeoutInterval = 15
+                urlRequest.httpBody = try JSONEncoder().encode(body)
+
+                let (data, response) = try await URLSession.shared.data(for: urlRequest)
+
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 200 {
+                        apiTestState = .success
+                    } else {
+                        let body = String(data: data, encoding: .utf8) ?? ""
+                        let prefix = String(body.prefix(120))
+                        if httpResponse.statusCode == 401 {
+                            apiTestState = .failed("Key 无效 (401)")
+                        } else if httpResponse.statusCode == 403 {
+                            apiTestState = .failed("权限不足 (403)")
+                        } else {
+                            apiTestState = .failed("\(httpResponse.statusCode): \(prefix)")
+                        }
+                    }
+                } else {
+                    apiTestState = .failed("无效响应")
+                }
+            } catch {
+                if Task.isCancelled { return }
+                let message = error.localizedDescription
+                if message.contains("Internet") || message.contains("offline") || message.contains("connect") {
+                    apiTestState = .failed("网络不通")
+                } else {
+                    apiTestState = .failed(message.prefix(80).description)
+                }
+            }
+        }
+    }
+
+    private func applyAnalysis(_ analysis: AiScriptAnalysis, mode: AiAnalysisMode) {
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        var document = segmentationService.segmentWithTimeAnalysis(
+            trimmed,
+            title: generatedTitle(from: trimmed),
+            timing: timing,
+            analysis: analysis
+        )
+        document.title = generatedTitle(from: document.rawText)
+
+        do {
+            try store.save(document)
+            loadRecentDocuments()
+            triggerSaveToast("AI 分析完成，已保存到全部稿件")
+        } catch {
+            triggerErrorToast("稿件保存失败")
+        }
+
+        open(document, announceRhythmReady: true)
     }
 
     func createDocumentFromInput() {
@@ -458,11 +820,20 @@ final class AppModel: ObservableObject {
         let elapsed = now.timeIntervalSince(lastPlaybackTick)
         self.lastPlaybackTick = now
         refreshElapsedDisplay()
-        let duration = max(0.35, session.timing.duration(
-            for: phrase,
-            in: sentence,
-            phraseIndex: session.currentPhraseIndex
-        ))
+
+        let duration: TimeInterval
+        if sentence.targetStartSeconds != nil || sentence.targetEndSeconds != nil {
+            let base = max(0.35, phrase.estimatedDuration * sentence.emphasis.durationMultiplier)
+            duration = session.currentPhraseIndex == sentence.phrases.count - 1
+                ? base + sentence.pause.extraSeconds
+                : base
+        } else {
+            duration = max(0.35, session.timing.duration(
+                for: phrase,
+                in: sentence,
+                phraseIndex: session.currentPhraseIndex
+            ))
+        }
         var progress = phraseProgress + (elapsed * settings.speedMultiplier) / duration
 
         while progress >= 1, session.isPlaying {
@@ -496,6 +867,40 @@ final class AppModel: ObservableObject {
 
     func setBodyFont(_ fontName: String?) {
         settings.bodyFontName = fontName
+    }
+
+    func setLineSpacing(_ value: Double) {
+        settings.lineSpacing = clamp(value, to: lineSpacingRange)
+    }
+
+    func setTracking(_ value: Double) {
+        settings.tracking = clamp(value, to: trackingRange)
+    }
+
+    func adjustSpeed(by delta: Double) {
+        setPromptSpeedMultiplier(settings.speedMultiplier + delta)
+    }
+
+    func setMirrored(_ enabled: Bool) {
+        settings.mirrored = enabled
+    }
+
+    func startPlaybackWithCountdown() {
+        guard session != nil, session?.isPlaying == false, countdownPhase == nil else { return }
+        countdownTask?.cancel()
+        countdownTask = Task { @MainActor in
+            countdownPhase = 3
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { countdownPhase = nil; return }
+            countdownPhase = 2
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { countdownPhase = nil; return }
+            countdownPhase = 1
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { countdownPhase = nil; return }
+            countdownPhase = nil
+            togglePlayback()
+        }
     }
 
     func setPromptOpacity(_ value: Double) {

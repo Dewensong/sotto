@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var hoverExpand = false
     @State private var hoverFile = false
     @State private var hoverSave = false
+    @State private var hoverAI = false
     @State private var hoverManageDocs = false
     @State private var hoverSettings = false
 
@@ -125,6 +126,7 @@ struct HomeView: View {
                     VStack(spacing: 0) {
                         HStack(spacing: 6) {
                             Button {
+                                model.pushInputHistory()
                                 model.inputText = ""
                                 isInputFocused = true
                             } label: {
@@ -140,6 +142,21 @@ struct HomeView: View {
                             .scaleEffect(hoverTrash ? 1.15 : 1.0)
                             .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverTrash)
                             .onHover { hoverTrash = $0 }
+
+                            if model.canUndoInput {
+                                Button {
+                                    model.undoInputChange()
+                                } label: {
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(Color.sottoGlow)
+                                        .frame(width: 26, height: 26)
+                                        .background(Color.sottoGlow.opacity(0.08))
+                                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                                .help("撤销输入更改")
+                            }
 
                             Button {
                                 withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
@@ -182,6 +199,36 @@ struct HomeView: View {
                             .onHover { hoverSave = $0 }
 
                             Button {
+                                model.exportCurrentDocument()
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Color.sottoSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.white.opacity(0.04))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.currentDocument == nil && model.session?.document == nil)
+                            .help("导出稿件")
+
+                            Button {
+                                model.showAiOptions.toggle()
+                            } label: {
+                                Image(systemName: "brain.head.profile")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(model.showAiOptions ? Color.sottoGlow : Color.sottoSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.white.opacity(model.showAiOptions ? 0.12 : 0.04))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isAnalyzing)
+                            .scaleEffect(hoverAI ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.28, dampingFraction: 0.70), value: hoverAI)
+                            .onHover { hoverAI = $0 }
+
+                            Button {
                                 openFilePicker()
                             } label: {
                                 Image(systemName: "doc.badge.plus")
@@ -199,6 +246,17 @@ struct HomeView: View {
                         .padding(.horizontal, 14)
                         .padding(.top, 10)
                         .padding(.bottom, 2)
+
+                        if model.showAiOptions {
+                            aiOptionsPanel
+                                .padding(.horizontal, 14)
+                                .transition(.opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.96, anchor: .top)))
+                        }
+
+                        if model.isAnalyzing {
+                            aiAnalyzingIndicator
+                                .padding(.horizontal, 14)
+                        }
 
                         PasteHandlingTextView(
                             text: $model.inputText,
@@ -411,6 +469,148 @@ struct HomeView: View {
         if !newText.isEmpty {
             isInputFocused = true
         }
+    }
+
+    private var aiOptionsPanel: some View {
+        VStack(spacing: 10) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.sottoGlow)
+                Text("AI 智能分析")
+                    .font(SottoFont.pixel(11))
+                    .foregroundStyle(Color.sottoPrimary)
+                Spacer()
+            }
+
+            // Speed tier picker
+            VStack(alignment: .leading, spacing: 4) {
+                Text("语速")
+                    .font(SottoFont.pixel(9))
+                    .foregroundStyle(Color.sottoMuted)
+                HStack(spacing: 6) {
+                    ForEach(ScriptSpeedTier.allCases, id: \.self) { tier in
+                        Button {
+                            model.pipelineSpeedTier = tier
+                        } label: {
+                            Text(tier.shortLabel)
+                                .font(SottoFont.pixel(10))
+                                .foregroundStyle(model.pipelineSpeedTier == tier ? Color.sottoPrimary : Color.sottoSecondary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 26)
+                                .background(Color.sottoGlow.opacity(model.pipelineSpeedTier == tier ? 0.16 : 0.04))
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .stroke(Color.sottoPrimary.opacity(model.pipelineSpeedTier == tier ? 0.28 : 0.08), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            // Main pipeline button
+            Button {
+                model.processScriptWithAiPipeline()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .font(.system(size: 10, weight: .medium))
+                    Text("开始智能分析")
+                        .font(SottoFont.pixel(11))
+                }
+                .foregroundStyle(Color.sottoPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 32)
+                .background(Color.sottoGlow.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.sottoGlow.opacity(0.22), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Legacy options (collapsible)
+            DisclosureGroup {
+                HStack(spacing: 6) {
+                    Button {
+                        model.analyzeScript(mode: .timeOnly)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 8, weight: .medium))
+                            Text("仅解析时间")
+                                .font(SottoFont.pixel(9))
+                        }
+                        .foregroundStyle(Color.sottoSecondary)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(Color.white.opacity(0.04))
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        model.analyzeScript(mode: .optimizeContent)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 8, weight: .medium))
+                            Text("优化内容")
+                                .font(SottoFont.pixel(9))
+                        }
+                        .foregroundStyle(Color.sottoSecondary)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(Color.white.opacity(0.04))
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 4)
+            } label: {
+                Text("更多选项")
+                    .font(SottoFont.pixel(9))
+                    .foregroundStyle(Color.sottoMuted)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .background(Color.black.opacity(0.18))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.sottoGlow.opacity(0.18), lineWidth: 1)
+        )
+    }
+
+    private var aiAnalyzingIndicator: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 16, height: 16)
+            Text(model.pipelineProgressLabel.isEmpty ? "AI 正在分析稿件..." : model.pipelineProgressLabel)
+                .font(SottoFont.pixel(11))
+                .foregroundStyle(Color.sottoSecondary)
+            Spacer()
+            Button {
+                if !model.pipelineProgressLabel.isEmpty {
+                    model.cancelPipeline()
+                } else {
+                    model.cancelAnalysis()
+                }
+            } label: {
+                Text("取消")
+                    .font(SottoFont.pixel(10))
+                    .foregroundStyle(Color.sottoSecondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
     }
 
     private func openFilePicker() {

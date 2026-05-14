@@ -35,21 +35,39 @@ struct SottoApp: App {
                 .disabled(model.session == nil)
 
                 Button(model.session?.isPlaying == true ? "暂停" : "播放") {
-                    model.togglePlayback()
+                    if model.session?.isPlaying == true {
+                        model.togglePlayback()
+                    } else {
+                        model.startPlaybackWithCountdown()
+                    }
                 }
                 .keyboardShortcut(.space, modifiers: [])
                 .disabled(model.session == nil)
 
+                Button("减速") {
+                    model.adjustSpeed(by: -0.05)
+                }
+                .keyboardShortcut(.leftArrow, modifiers: [.command])
+                .disabled(model.session == nil)
+
+                Button("加速") {
+                    model.adjustSpeed(by: 0.05)
+                }
+                .keyboardShortcut(.rightArrow, modifiers: [.command])
+                .disabled(model.session == nil)
+
+                Divider()
+
                 Button("上一句") {
                     model.previousSentence()
                 }
-                .keyboardShortcut(.leftArrow, modifiers: [.command])
+                .keyboardShortcut(.leftArrow, modifiers: [])
                 .disabled(model.session == nil)
 
                 Button("下一句") {
                     model.nextSentence()
                 }
-                .keyboardShortcut(.rightArrow, modifiers: [.command])
+                .keyboardShortcut(.rightArrow, modifiers: [])
                 .disabled(model.session == nil)
 
                 Divider()
@@ -95,6 +113,34 @@ struct SottoApp: App {
                 }
                 .keyboardShortcut("j", modifiers: [.command])
                 .disabled(model.session == nil)
+
+                Divider()
+
+                Button("设置书签") {
+                    model.setBookmark()
+                }
+                .keyboardShortcut("b", modifiers: [.command])
+                .disabled(model.session == nil)
+
+                Button("跳转书签") {
+                    model.jumpToBookmark()
+                }
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+                .disabled(model.bookmarkedSentenceIndex == nil || model.session == nil)
+
+                Divider()
+
+                Button("撤销输入") {
+                    model.undoInputChange()
+                }
+                .keyboardShortcut("z", modifiers: [.command])
+                .disabled(!model.canUndoInput)
+
+                Button("导出稿件") {
+                    model.exportCurrentDocument()
+                }
+                .keyboardShortcut("e", modifiers: [.command])
+                .disabled(model.currentDocument == nil && model.session == nil)
 
                 Divider()
 

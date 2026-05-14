@@ -43,8 +43,13 @@ struct PromptWindowLayout: View {
                         .padding(.top, 12)
                         .padding(.trailing, 12)
                 }
+                .scaleEffect(x: model.settings.mirrored ? -1 : 1, y: 1)
                 .blur(radius: showSettings ? 8 : 0)
                 .allowsHitTesting(!showSettings)
+
+                if let phase = model.countdownPhase {
+                    countdownOverlay(phase: phase)
+                }
 
                 if showSettings {
                     Color.black.opacity(0.001)
@@ -154,17 +159,71 @@ struct PromptWindowLayout: View {
             }
             .foregroundStyle(Color.sottoSecondary)
 
+            if let para = currentParagraphInfo {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(para.name)
+                        .font(SottoFont.pixel(11))
+                        .tracking(1.5)
+                        .lineLimit(1)
+                    Text("\(para.current) / \(para.total)")
+                        .font(SottoFont.pixel(14))
+                }
+                .foregroundStyle(Color.sottoSecondary)
+            }
+
+            if let bookmarkIndex = model.bookmarkedSentenceIndex {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("书签")
+                        .font(SottoFont.pixel(11))
+                        .tracking(1.5)
+                    Button {
+                        model.jumpToBookmark()
+                    } label: {
+                        Text("句 \(bookmarkIndex + 1)")
+                            .font(SottoFont.pixel(14))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .foregroundStyle(Color.sottoGlow)
+            }
+
             Spacer(minLength: 4)
 
             VStack(alignment: .leading, spacing: 3) {
                 shortcutHint(key: "Space", label: "播放/暂停")
                 shortcutHint(key: "⇧⌘R", label: "从头")
                 shortcutHint(key: "⌘J", label: "导航")
-                shortcutHint(key: "⌘←→", label: "上下句")
+                shortcutHint(key: "← →", label: "上下句")
+                shortcutHint(key: "⌘←→", label: "加减速")
                 shortcutHint(key: "Esc", label: "退出")
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private var currentParagraphInfo: (current: Int, total: Int, name: String)? {
+        guard let session = model.session,
+              let paraIndex = session.currentSentence?.paragraphIndex else { return nil }
+        let sentences = session.document.sentences
+        let uniqueParagraphs = Set(sentences.compactMap(\.paragraphIndex))
+        guard !uniqueParagraphs.isEmpty else { return nil }
+        let firstSentence = sentences.first { $0.paragraphIndex == paraIndex }
+        let name = firstSentence.map { String($0.text.prefix(8)) } ?? "段落"
+        return (current: paraIndex + 1, total: uniqueParagraphs.count, name: name)
+    }
+
+    private func countdownOverlay(phase: Int) -> some View {
+        ZStack {
+            Color.black.opacity(0.55)
+            Text("\(phase)")
+                .font(.system(size: 144, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color.sottoPrimary)
+                .shadow(color: Color.sottoGlow.opacity(0.6), radius: 32)
+        }
+        .ignoresSafeArea()
+        .transition(.opacity.combined(with: .scale(scale: 1.4)))
+        .animation(.easeInOut(duration: 0.25), value: phase)
+        .zIndex(30)
     }
 
     private func shortcutHint(key: String, label: String) -> some View {
@@ -201,9 +260,15 @@ struct PromptWindowLayout: View {
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: fullWindow) {
                     LazyVStack(alignment: .leading, spacing: fullWindow ? 14 : 9) {
-                        ForEach(promptRows) { row in
-                            promptRow(row)
-                                .id(row.index)
+                        ForEach(promptDisplayItems) { item in
+                            switch item {
+                            case .row(let row):
+                                promptRow(row)
+                                    .id(row.index)
+                            case .divider(let id):
+                                paragraphDivider
+                                    .id("divider-\(id)")
+                            }
                         }
                     }
                     .padding(.vertical, fullWindow ? 54 : 18)
@@ -223,6 +288,55 @@ struct PromptWindowLayout: View {
                 strength: fullWindow ? 0.46 : 0.24
             )
         }
+    }
+
+    private enum PromptDisplayItem: Identifiable {
+        case row(PromptDisplayRow)
+        case divider(id: Int)
+
+        var id: String {
+            switch self {
+            case .row(let row): return "row-\(row.index)"
+            case .divider(let id): return "divider-\(id)"
+            }
+        }
+    }
+
+    private var promptDisplayItems: [PromptDisplayItem] {
+        let rows = promptRows
+        guard !rows.isEmpty else { return [] }
+
+        let sentences = model.session?.document.sentences ?? []
+        var items: [PromptDisplayItem] = []
+
+        for row in rows {
+            // Insert divider before row if paragraph changed from previous sentence
+            if row.index > 0,
+               let currentPara = sentences[row.index].paragraphIndex,
+               let prevPara = sentences[row.index - 1].paragraphIndex,
+               currentPara != prevPara {
+                items.append(.divider(id: row.index))
+            }
+            items.append(.row(row))
+        }
+
+        return items
+    }
+
+    private var paragraphDivider: some View {
+        HStack(spacing: 10) {
+            Rectangle()
+                .fill(Color.sottoPrimary.opacity(0.12))
+                .frame(height: 1)
+            Circle()
+                .fill(Color.sottoPrimary.opacity(0.18))
+                .frame(width: 4, height: 4)
+            Rectangle()
+                .fill(Color.sottoPrimary.opacity(0.12))
+                .frame(height: 1)
+        }
+        .padding(.horizontal, fullWindow ? 40 : 16)
+        .padding(.vertical, fullWindow ? 4 : 2)
     }
 
     private func promptRow(_ row: PromptDisplayRow) -> some View {
@@ -268,7 +382,8 @@ struct PromptWindowLayout: View {
     ) -> some View {
         Text(text)
             .font(SottoFont.bodyFont(model.settings.bodyFontName, size: size))
-            .lineSpacing(size * 0.18)
+            .lineSpacing(size * model.settings.lineSpacing)
+            .tracking(model.settings.tracking)
             .lineLimit(lineLimit)
             .foregroundStyle(color)
             .shadow(color: Color.sottoGlow.opacity(weight == .semibold ? 0.26 : 0.10), radius: weight == .semibold ? 12 : 6)
@@ -277,8 +392,19 @@ struct PromptWindowLayout: View {
     private var controls: some View {
         HStack(spacing: 12) {
             SottoIconButton(systemName: "backward.end.fill") { model.previousSentence() }
-            SottoIconButton(systemName: model.session?.isPlaying == true ? "pause.fill" : "play.fill") { model.togglePlayback() }
+            SottoIconButton(systemName: model.session?.isPlaying == true ? "pause.fill" : "play.fill") {
+                if model.session?.isPlaying == true {
+                    model.togglePlayback()
+                } else {
+                    model.startPlaybackWithCountdown()
+                }
+            }
             SottoIconButton(systemName: "forward.end.fill") { model.nextSentence() }
+            divider
+            Text(String(format: "%.2fx", model.settings.speedMultiplier))
+                .font(SottoFont.pixel(10))
+                .foregroundStyle(Color.sottoSecondary)
+                .monospacedDigit()
             divider
             SottoIconButton(systemName: "slider.horizontal.3", title: "TUNE") {
                 showSettings.toggle()
@@ -377,6 +503,8 @@ struct PromptWindowLayout: View {
                     lineLimit: lineLimit,
                     emphasized: sentence.emphasis == .emphasized,
                     bodyFontName: model.settings.bodyFontName,
+                    lineSpacing: model.settings.lineSpacing,
+                    tracking: model.settings.tracking,
                     sweepMode: sweepMode
                 )
             )
@@ -611,6 +739,8 @@ private struct CurrentSentenceSweepView: View {
     let lineLimit: Int
     let emphasized: Bool
     let bodyFontName: String?
+    let lineSpacing: Double
+    let tracking: Double
     let sweepMode: PhraseSweepMode
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -626,7 +756,8 @@ private struct CurrentSentenceSweepView: View {
                 )
             }
         }
-        .lineSpacing(size * 0.18)
+        .lineSpacing(size * lineSpacing)
+        .tracking(tracking)
         .shadow(color: Color.sottoGlow.opacity(emphasized ? 0.42 : 0.28), radius: emphasized ? 18 : 12)
         .animation(.easeOut(duration: SottoMotionTokens.duration(0.24, reduceMotion: reduceMotion)), value: currentPhraseIndex)
     }
