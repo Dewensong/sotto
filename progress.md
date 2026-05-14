@@ -1,5 +1,13 @@
 # 推进记录
 
+## 2026-05-12（项目整理）
+
+- **评估 Swift 代码结构**：确认 `Sources/` 下 `SottoCore`（纯逻辑）→ `Sotto`（UI 层）的分层已符合 AGENTS.md 精神，Models/Services/Stores 分组清晰，依赖方向正确，无需调整。
+- **整理 docs/ 文档目录**：将 6 份页面参考文档（homepage、prompt-window、script-editor、segmentation-panel、preparing-state、page-descriptions）归入 `docs/references/` 子目录，减少根目录噪音；将 `github-public-readme-plan-2026-05-10.md` 从 `docs/` 移至 `work/`（属于计划文档，非稳定文档）。
+- **清理空目录**：移除空目录 `scripts/`（实际构建脚本在 `script/`）。
+- **验证**：确认 `.DS_Store` 已在 `.gitignore` 中且无文件被 git 跟踪；`work/` 6 个文件命名清晰、日期明确，无需额外整理；空目录 `deliverables/`、`archive/`、`.claude/rules/` 属于项目骨架，保留。
+- 更新 README.md、README.en.md、`docs/sotto-ui-design-baseline-v1.md` 中的文档链接。
+
 ## 2026-05-11（GitHub 主页增强个人影响力）
 
 - **丰富首屏产品叙事**：将 README 开头从功能说明改为画面感表达——暗色舞台、暖光呼吸、提词伙伴、表达者的后台时刻，让项目主页第一印象更像产品故事而不是技术文档。

@@ -14,11 +14,11 @@
 
 对应说明文档：
 
-- `docs/homepage-reference-v1.md`
-- `docs/preparing-state-reference-v1.md`
-- `docs/script-editor-reference-v1.md`
-- `docs/segmentation-panel-reference-v1.md`
-- `docs/prompt-window-reference-v1.md`
+- `docs/references/homepage-reference-v1.md`
+- `docs/references/preparing-state-reference-v1.md`
+- `docs/references/script-editor-reference-v1.md`
+- `docs/references/segmentation-panel-reference-v1.md`
+- `docs/references/prompt-window-reference-v1.md`
 
 ## 2. 核心气质
 

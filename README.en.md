@@ -91,9 +91,9 @@ A short silent demo slideshow is available at [artifacts/github-media/sotto-demo
 The design direction is documented in:
 
 - [Sotto UI Design Baseline](docs/sotto-ui-design-baseline-v1.md)
-- [Homepage Reference](docs/homepage-reference-v1.md)
-- [Prompt Window Reference](docs/prompt-window-reference-v1.md)
-- [Script Editor Reference](docs/script-editor-reference-v1.md)
+- [Homepage Reference](docs/references/homepage-reference-v1.md)
+- [Prompt Window Reference](docs/references/prompt-window-reference-v1.md)
+- [Script Editor Reference](docs/references/script-editor-reference-v1.md)
 
 ## Run Locally
 
@@ -169,7 +169,7 @@ Key design references and decisions:
 - [Product Definition V1](docs/product-definition-v1.md)
 - [Sotto Interaction and Motion Principles](docs/sotto-interaction-motion-principles-v1.md)
 - [MVP 0.1 Design Spec](docs/superpowers/specs/2026-05-02-spotlight-flow-teleprompter-mvp-design.md)
-- [GitHub Public README Plan](docs/github-public-readme-plan-2026-05-10.md)
+- [GitHub Public README Plan](work/github-public-readme-plan-2026-05-10.md)
 
 ## Public Release Notes
 
