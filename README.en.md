@@ -29,11 +29,11 @@ It is designed to help me:
 
 ## Current Status
 
-Sotto is currently an MVP 0.1 build for personal use and public learning. The core prompting loop works locally, but this is not a polished product release yet.
+Sotto is currently an MVP 0.1+ build for personal use and public learning. The core prompting loop works locally, and recent local work adds AI time-structure analysis, script export, long-script navigation, and live prompting controls. It is still not a polished product release.
 
 Recently verified locally:
 
-- `swift test` passed 44 tests.
+- `swift test` passed 64 tests.
 - `./script/build_and_run.sh --verify` built and launched `dist/Sotto.app`.
 - Current app screenshots and a short silent demo slideshow were captured from the running local build.
 
@@ -51,19 +51,22 @@ Still being validated:
 
 - Paste a prepared script.
 - Automatically split Chinese / English text into sentences and phrases.
+- Optionally use DeepSeek for a two-stage AI pass: clean the speaking script, then estimate its timing structure.
 - Edit the current sentence directly.
 - Split one sentence into two, or merge it with the previous / next sentence.
 - Add pause and emphasis settings that affect prompting rhythm.
 - Save scripts into a local document library.
+- Export the current script as Markdown or plain text.
 
 ### Prompting Experience
 
 - Open a floating AppKit prompt window above other Mac windows.
 - Use timed playback or voice-activated playback.
+- Use AI time anchors for timing-aware prompting.
 - Read with a token-level cursor: Chinese advances by character, English / numbers advance by word.
 - Click a sentence to jump during rehearsal or recording.
-- Use the TUNE drawer to adjust speed, font size, opacity, width, and brightness.
-- Move between position presets and use keyboard shortcuts for common controls.
+- Use the TUNE drawer to adjust speed, font size, opacity, width, brightness, line spacing, tracking, and mirror mode.
+- Move between position presets and use bookmarks, countdown, long-script navigation, and keyboard shortcuts for common controls.
 
 ### Recording Mode
 
@@ -139,10 +142,9 @@ artifacts/               # Local reference assets; large/raw folders are ignored
 
 ### MVP 0.2 Candidates
 
-- Better long-script navigation.
-- Adjustable voice activation threshold.
+- Search / grouping / batch editing for long scripts.
+- Better voice activation calibration and scene presets.
 - Readable font mode for long-form scripts.
-- Script import / export.
 - External display or viewer mode.
 
 ### Later Ideas
